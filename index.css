@@ -1,0 +1,59 @@
+body {
+    margin: 0 auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background-color: #fffcf9;
+    color: #bbb;
+    font-size: 2rem;
+    min-height: 100vh;
+}
+
+/* #hiddenInput {
+      opacity: 0;
+      position: absolute;
+      left: -9999px;
+    } */
+
+#output span {
+    position: relative;
+}
+
+.box {
+    background-color: rgb(255 244 218);
+    border: 3px solid black;
+    width: 80vw;
+    margin: 8vh auto;
+    height: 40vh;
+    border-radius: 4px;
+    padding: 3vmin;
+    box-shadow: 4px 8px 0px 2px black;
+}
+
+.correct {
+    color: #222;
+}
+
+.error {
+    background-color: red;
+}
+
+.cursor::after {
+    animation: cursor 2s infinite;
+    content: " ";
+    position: absolute;
+    color: #111;
+    right: 0.5rem;
+}
+
+@keyframes cursor {
+    0% {
+        content: "|";
+    }
+
+    50% {
+        content: " ";
+    }
+
+    51% {
+        content: "|";
+    }
+}
