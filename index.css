@@ -1,47 +1,103 @@
 body {
     margin: 0 auto;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    background-color: #fffcf9;
-    color: #bbb;
+    font-family: monospace;
+    background-color: rgb(255 244 218);
     font-size: 2rem;
     min-height: 100vh;
 }
 
-/* #hiddenInput {
-      opacity: 0;
-      position: absolute;
-      left: -9999px;
-    } */
+header {
+    color: black;
+    padding: 1rem;
+    border-bottom: 4px solid black;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+h1 span {
+    color: rgb(254 74 96);
+}
+
+main {
+    margin: auto 12vw;
+}
+
+#hiddenInput {
+    opacity: 0;
+    position: absolute;
+    left: -9999px;
+}
+
+.box {
+    margin: 10vh auto 0 auto;
+    max-height: 80vh;
+    border-radius: 4px;
+    color: rgb(255 197 128);
+    color: #aaa;
+    cursor: default;
+}
+
+#array {
+    font-size: 0.7rem;
+}
+
+#array div {
+    display: inline-flex;
+    padding: 0.2rem;
+}
+
+#array div div {
+    padding: 0.3rem;
+    border: 1px solid black;
+}
+
+#array div aside {
+    display: inline-block;
+    border: 1px solid black;
+    padding: 0.3rem;
+    color: plum;
+}
 
 #output span {
     position: relative;
 }
 
-.box {
-    background-color: rgb(255 244 218);
-    border: 3px solid black;
-    width: 80vw;
-    margin: 8vh auto;
-    height: 40vh;
-    border-radius: 4px;
-    padding: 3vmin;
-    box-shadow: 4px 8px 0px 2px black;
+.last {
+    color: transparent;
 }
 
 .correct {
-    color: #222;
+    color: #5df1a5;
 }
 
 .error {
-    background-color: red;
+    background-color: rgb(254 74 96);
+    color: #fff;
+}
+
+.error::before {
+    content: attr(data-pressed);
+    position: absolute;
+    top: -0.5rem;
+    left: 0.3rem;
+    font-size: 0.8rem;
+    color: #000;
+}
+
+.selection {
+    background-color: #dddddddd
 }
 
 .cursor::after {
     animation: cursor 2s infinite;
     content: " ";
     position: absolute;
-    color: #111;
-    right: 0.5rem;
+    color: black;
+    right: 0.65rem;
+    bottom: 0.1rem;
 }
 
 @keyframes cursor {
