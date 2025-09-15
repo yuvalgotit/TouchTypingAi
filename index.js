@@ -1,21 +1,18 @@
 // BUGS:
-// 1. EOL space causes cursor to not move
+// 1. EOL space causes cursor to not move in the UI (CSS problem)
 
 
 let keystrokes = [];
-let startTime = null;
-let sentence = "Welcome! Each time you finish typing, your keystrokes are sent to an LLM to craft the next sentence based on your weaknesses. You must finish without errors.";
+let lastPressTime = null;
+let sentence = "Welcome! Each time you finish typing"//, your keystrokes are sent to an LLM to craft the next sentence based on your weaknesses. You must finish without errors.";
 
 document.addEventListener("DOMContentLoaded", () => {
     const hiddenInput = document.getElementById("hiddenInput");
     const output = document.getElementById("output");
     const arrayDisplay = document.getElementById("array");
 
-    setInterval(() => {
-        if (document.activeElement !== hiddenInput) {
-            hiddenInput.focus();
-        }
-    }, 100);
+    hiddenInput.focus()
+    hiddenInput.addEventListener("blur", () => hiddenInput.focus())
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -30,15 +27,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const now = performance.now()
 
         const isFirstKey = (keystrokes.length === 0)
-        if (isFirstKey || startTime === null) {
-            startTime = now;
+        if (isFirstKey || lastPressTime === null) {
+            lastPressTime = now;
         }
 
-        const msSinceLastKey = (now - startTime).toFixed(0);
         keystrokes.push({
-            ms: msSinceLastKey,
-            key: event.key
+            delta: Math.round(now - lastPressTime),
+            key: event.key,
         });
+
+        lastPressTime = now
     });
 
     hiddenInput.addEventListener('beforeinput', (event) => {
@@ -47,16 +45,27 @@ document.addEventListener("DOMContentLoaded", () => {
             event.preventDefault();
         }
 
-        if(event.inputType != 'insertText' && event.inputType != 'deleteContentBackward'){
+        if (event.inputType != 'insertText' && event.inputType != 'deleteContentBackward' && keystrokes.length) {
             keystrokes.at(-1).action = event.inputType;
         }
     });
 
     hiddenInput.addEventListener('input', (event) => {
+        const len = hiddenInput.value.length
+        if (hiddenInput.value[len - 1] != sentence[len - 1] && keystrokes.at(-1).key != 'Backspace') {
+            keystrokes.at(-1).error = true;
+            keystrokes.at(-1).expected = sentence[len - 1]
+        }
+
         render()
         const isDone = (hiddenInput.value === sentence)
-        if (isDone){
-            reset()
+        if (isDone) {
+            console.log('Sentence: ' + sentence)
+            console.log('Keystrokes: ' + JSON.stringify(keystrokes))
+            console.log('Errors: ' + keystrokes.filter(k => k.error).length)
+            console.log('WPM: ' + getWPM());
+
+            generateNextSentence()
         }
     });
     hiddenInput.addEventListener('keyup', (event) => {
@@ -69,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
     reset();
 
     function reset() {
-        console.log(JSON.stringify(keystrokes))
         keystrokes = [];
         hiddenInput.value = "";
         output.innerHTML = sentence.split('').map(c => `<span>${c}</span>`).join('') + '<span class="last">@</span>'
@@ -105,8 +113,43 @@ document.addEventListener("DOMContentLoaded", () => {
         })
 
         arrayDisplay.innerHTML = keystrokes.map(
-            t => `<div><div>${t.ms}</div><div>${t.key}</div>${t.action ? `<aside>${t.action}</aside>` : ''}</div>`
+            t => `<div${t.error ? ' class="error"' : ''}
+                    ><div>${t.delta}</div>
+                    <div>${t.key}</div>
+                    ${t.action ? `<aside>${t.action}</aside>` : ''}
+                 </div>`
         ).join('')
+    }
+
+    async function generateNextSentence() {
+        try {
+            const res = await fetch("/generate-sentence", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sentence, keystrokes })
+            });
+            const data = await res.json();
+            console.log(data.sentence)
+            sentence = data.sentence
+            reset()
+            render()
+            return data.sentence;
+        } catch (err) {
+            console.error("Server error:", err);
+            return sentence; // fallback
+        }
+    }
+
+    function getWPM(){
+        const CharsWrittenSoFar = hiddenInput.value.length;
+        const totalTimeMs = keystrokes.reduce((accumulator, currentKeystroke) => {
+            return accumulator + currentKeystroke.delta;
+        }, 0);
+        if(totalTimeMs === 0) return 0
+        const minutes = totalTimeMs / 60000;
+        const wpm = Math.round((CharsWrittenSoFar / 5) / minutes)
+
+        return wpm
     }
 });
 
