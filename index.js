@@ -1,18 +1,26 @@
-// BUGS:
-// 1. EOL space causes cursor to not move in the UI (CSS problem)
+// TODO: add "clear all errors to complete" explanation text somewhere
 
+const HISTORY_KEY = "typingHistory";
+const NEXT_SENTENCE_KEY = "nextSentence";
 
 let keystrokes = [];
 let lastPressTime = null;
-let sentence = "Welcome! Each time you finish typing"//, your keystrokes are sent to an LLM to craft the next sentence based on your weaknesses. You must finish without errors.";
+let sentence = localStorage.getItem(NEXT_SENTENCE_KEY) ||
+    "Welcome! Each time you finish typing, your keystrokes are sent to an AI to craft the next sentence based on your weaknesses. You must finish without errors.";
 
 document.addEventListener("DOMContentLoaded", () => {
     const hiddenInput = document.getElementById("hiddenInput");
-    const output = document.getElementById("output");
-    const arrayDisplay = document.getElementById("array");
+    const userFocusInput = document.getElementById("userFocusInput");
+    const outputElement = document.getElementById("output");
+    const wpmElement = document.getElementById("wpm")
 
-    hiddenInput.focus()
-    hiddenInput.addEventListener("blur", () => hiddenInput.focus())
+    function focusInput() {
+        if (document.activeElement != hiddenInput && document.activeElement != userFocusInput) {
+            hiddenInput.focus()
+        }
+        requestAnimationFrame(focusInput)
+    }
+    focusInput();
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -50,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    hiddenInput.addEventListener('input', (event) => {
+    hiddenInput.addEventListener('input', () => {
         const len = hiddenInput.value.length
         if (hiddenInput.value[len - 1] != sentence[len - 1] && keystrokes.at(-1).key != 'Backspace') {
             keystrokes.at(-1).error = true;
@@ -58,16 +66,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         render()
-        const isDone = (hiddenInput.value === sentence)
-        if (isDone) {
-            console.log('Sentence: ' + sentence)
-            console.log('Keystrokes: ' + JSON.stringify(keystrokes))
-            console.log('Errors: ' + keystrokes.filter(k => k.error).length)
-            console.log('WPM: ' + getWPM());
-
-            generateNextSentence()
+        if (hiddenInput.value === sentence) {
+            runFinishedSuccessfully()
         }
     });
+
     hiddenInput.addEventListener('keyup', (event) => {
         render()
         if (hiddenInput.value === "") {
@@ -80,14 +83,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function reset() {
         keystrokes = [];
         hiddenInput.value = "";
-        output.innerHTML = sentence.split('').map(c => `<span>${c}</span>`).join('') + '<span class="last">@</span>'
-        output.querySelector('span').className = 'cursor'
+        outputElement.innerHTML = sentence.split('').map(c => `<span>${c}</span>`).join('') + '<span class="last">@</span>'
+        outputElement.querySelector('span').className = 'cursor'
+        wpmElement.textContent = ""
 
         render()
     }
 
     function render() {
-        const spans = output.querySelectorAll('span')
+        const spans = outputElement.querySelectorAll('span')
         spans.forEach((s, i) => {
             if (i + 1 == spans.length) {
                 s.className = "last"
@@ -111,45 +115,68 @@ document.addEventListener("DOMContentLoaded", () => {
                 s.className += " cursor"
             }
         })
+    }
 
-        arrayDisplay.innerHTML = keystrokes.map(
-            t => `<div${t.error ? ' class="error"' : ''}
-                    ><div>${t.delta}</div>
-                    <div>${t.key}</div>
-                    ${t.action ? `<aside>${t.action}</aside>` : ''}
-                 </div>`
-        ).join('')
+    function runFinishedSuccessfully() {
+        wpmElement.textContent = `${getWPM()} WPM`
+
+        generateNextSentence()
+    }
+
+    function getWPM() {
+        const CharsWrittenSoFar = hiddenInput.value.length;
+        const totalTimeMs = keystrokes.reduce((accumulator, currentKeystroke) => {
+            return accumulator + currentKeystroke.delta;
+        }, 0);
+        if (totalTimeMs === 0) return 0
+        const minutes = totalTimeMs / 60000;
+        const wpm = Math.round((CharsWrittenSoFar / 5) / minutes)
+
+        return wpm
+    }
+
+    function saveRun(run) {
+        let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        history.push(run);
+
+        // since we are only sending a few to the LLM there is no reason to keep them on the local storage
+        if (history.length > 10) history = history.slice(-10);
+
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+
+    function getRecentRuns(n = 3) {
+        let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        return history.slice(-n);
     }
 
     async function generateNextSentence() {
         try {
+            const recentRuns = getRecentRuns(3);
+
             const res = await fetch("/generate-sentence", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sentence, keystrokes })
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    sentence,
+                    keystrokes,
+                    performanceHistory: recentRuns,
+                    userFocus: userFocusInput.value
+                })
             });
             const data = await res.json();
-            console.log(data.sentence)
-            sentence = data.sentence
-            reset()
-            render()
-            return data.sentence;
+            newSentence(data.sentence)
+            saveRun(data.performanceTxt)
         } catch (err) {
             console.error("Server error:", err);
             return sentence; // fallback
         }
     }
 
-    function getWPM(){
-        const CharsWrittenSoFar = hiddenInput.value.length;
-        const totalTimeMs = keystrokes.reduce((accumulator, currentKeystroke) => {
-            return accumulator + currentKeystroke.delta;
-        }, 0);
-        if(totalTimeMs === 0) return 0
-        const minutes = totalTimeMs / 60000;
-        const wpm = Math.round((CharsWrittenSoFar / 5) / minutes)
-
-        return wpm
+    function newSentence(newSentence) {
+        sentence = newSentence
+        localStorage.setItem(NEXT_SENTENCE_KEY, newSentence);
+        reset()
     }
 });
 

@@ -9,7 +9,15 @@ body {
 header {
     color: black;
     padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
     border-bottom: 4px solid black;
+}
+
+#userFocusInput {
+    font-size: 1rem;
+    padding: 0.1rem 0.5rem;
 }
 
 h1 {
@@ -22,7 +30,7 @@ h1 span {
 }
 
 main {
-    margin: auto 12vw;
+    margin: auto 10vw;
 }
 
 #hiddenInput {
@@ -32,7 +40,7 @@ main {
 }
 
 .box {
-    margin: 10vh auto 0 auto;
+    margin: 7vh auto 0 auto;
     max-height: 80vh;
     border-radius: 4px;
     color: rgb(255 197 128);
@@ -40,25 +48,8 @@ main {
     cursor: default;
 }
 
-#array {
-    font-size: 0.7rem;
-}
-
-#array div {
-    display: inline-flex;
-    padding: 0.2rem;
-}
-
-#array div div {
-    padding: 0.3rem;
-    border: 1px solid black;
-}
-
-#array div aside {
-    display: inline-block;
-    border: 1px solid black;
-    padding: 0.3rem;
-    color: plum;
+#output {
+    white-space: break-spaces;
 }
 
 #output span {
@@ -112,4 +103,14 @@ main {
     51% {
         content: "|";
     }
+}
+
+#wpm {
+    font-size: 5rem;
+    color: #ffc580;
+    position: absolute;
+    left: 0;
+    top: 35vh;
+    width: 100vw;
+    text-align: center;
 }
