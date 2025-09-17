@@ -5,12 +5,12 @@ const NEXT_SENTENCE_KEY = "nextSentence";
 
 let keystrokes = [];
 let lastPressTime = null;
-let sentence = localStorage.getItem(NEXT_SENTENCE_KEY) ||
-    "Welcome! Each time you finish typing, your keystrokes are sent to an AI to craft the next sentence based on your weaknesses. You must finish without errors.";
+let sentence = ""
 
 document.addEventListener("DOMContentLoaded", () => {
     const hiddenInput = document.getElementById("hiddenInput");
     const userFocusInput = document.getElementById("userFocusInput");
+    const clearHistoryButton = document.getElementById("clearHistoryButton")
     const outputElement = document.getElementById("output");
     const wpmElement = document.getElementById("wpm")
 
@@ -21,6 +21,11 @@ document.addEventListener("DOMContentLoaded", () => {
         requestAnimationFrame(focusInput)
     }
     focusInput();
+
+    clearHistoryButton.addEventListener(("click"), () => {
+        localStorage.clear();
+        reset();
+    })
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -83,6 +88,10 @@ document.addEventListener("DOMContentLoaded", () => {
     function reset() {
         keystrokes = [];
         hiddenInput.value = "";
+
+        sentence = localStorage.getItem(NEXT_SENTENCE_KEY) ||
+            "Welcome to touch typing ai, your keystrokes are sent to an AI after every run to craft your next sentence based on your weaknesses.";
+
         outputElement.innerHTML = sentence.split('').map(c => `<span>${c}</span>`).join('') + '<span class="last">@</span>'
         outputElement.querySelector('span').className = 'cursor'
         wpmElement.textContent = ""
@@ -140,27 +149,24 @@ document.addEventListener("DOMContentLoaded", () => {
         history.push(run);
 
         // since we are only sending a few to the LLM there is no reason to keep them on the local storage
-        if (history.length > 10) history = history.slice(-10);
+        if (history.length > 2) history = history.slice(-2);
 
         localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
     }
 
-    function getRecentRuns(n = 3) {
-        let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-        return history.slice(-n);
+    function getPerformanceHistory() {
+        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
     }
 
     async function generateNextSentence() {
         try {
-            const recentRuns = getRecentRuns(3);
-
             const res = await fetch("/generate-sentence", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     sentence,
                     keystrokes,
-                    performanceHistory: recentRuns,
+                    performanceHistory: getPerformanceHistory(),
                     userFocus: userFocusInput.value
                 })
             });
