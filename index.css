@@ -253,13 +253,3 @@ body.loading #loadingSpinner {
         transform: translate(-50%, -50%) rotate(-360deg);
     }
 }
-
-#hiddenButton{
-    position: fixed;
-    width: 100vh;
-    height: 80vh;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    cursor: default;
-}

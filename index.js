@@ -15,7 +15,6 @@ let runFinished = false
 
 document.addEventListener("DOMContentLoaded", () => {
     const hiddenInput = document.getElementById("hiddenInput");
-    const hiddenButton = document.getElementById("hiddenButton");
     const practiceTopicInput = document.getElementById("practiceTopicInput");
     const clearHistoryButton = document.getElementById("clearHistoryButton")
     const outputElement = document.getElementById("output");
@@ -23,17 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const instructionLabel = document.getElementById("instructionLabel")
 
     function focusInput() {
-        if (document.activeElement != hiddenInput && (!tabableElements.includes(document.activeElement.tagName) || document.activeElement === hiddenButton)) {
+        if (document.activeElement != hiddenInput && !tabableElements.includes(document.activeElement.tagName)) {
             hiddenInput.focus()
         }
         requestAnimationFrame(focusInput)
     }
 
+    outputElement.classList.add("focused")
     focusInput()
-
-    hiddenButton.addEventListener(("click"), () => {
-        hiddenInput.blur()
-    })
 
     hiddenInput.addEventListener("focus", () => {
         outputElement.classList.add("focused")
