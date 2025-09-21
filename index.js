@@ -29,10 +29,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setTimeout(() => {
+        clearHistoryButton.classList.add('clicked');
+        hiddenInput.focus()
+        setTimeout(() => {
+            clearHistoryButton.classList.remove('clicked');
+        }, 200);
         focusInput()
-    }, 60)
+    }, 200)
 
-    outputElement.addEventListener(("click"), () => {
+    outputElement.addEventListener(("touchstart"), () => {
         hiddenInput.blur()
     })
 
