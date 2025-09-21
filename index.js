@@ -15,6 +15,7 @@ let runFinished = false
 
 document.addEventListener("DOMContentLoaded", () => {
     const hiddenInput = document.getElementById("hiddenInput");
+    const hiddenButton = document.getElementById("hiddenButton");
     const practiceTopicInput = document.getElementById("practiceTopicInput");
     const clearHistoryButton = document.getElementById("clearHistoryButton")
     const outputElement = document.getElementById("output");
@@ -22,22 +23,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const instructionLabel = document.getElementById("instructionLabel")
 
     function focusInput() {
-        if (document.activeElement != hiddenInput && !tabableElements.includes(document.activeElement.tagName)) {
+        if (document.activeElement != hiddenInput && (!tabableElements.includes(document.activeElement.tagName) || document.activeElement === hiddenButton)) {
             hiddenInput.focus()
         }
         requestAnimationFrame(focusInput)
     }
 
-    setTimeout(() => {
-        clearHistoryButton.classList.add('clicked');
-        hiddenInput.focus()
-        setTimeout(() => {
-            clearHistoryButton.classList.remove('clicked');
-        }, 200);
-        focusInput()
-    }, 200)
+    focusInput()
 
-    outputElement.addEventListener(("touchstart"), () => {
+    hiddenButton.addEventListener(("click"), () => {
         hiddenInput.blur()
     })
 
