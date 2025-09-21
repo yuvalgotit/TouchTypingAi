@@ -102,6 +102,11 @@ button.clicked {
     left: -9999px;
 }
 
+body.rtl #hiddenInput {
+    text-align: right;
+    direction: rtl;
+}
+
 .box {
     margin: 7vh auto 0 auto;
     max-height: 80vh;
@@ -113,6 +118,10 @@ button.clicked {
     white-space: break-spaces;
     font-size: 2rem;
     color: var(--unwritten-text-color);
+}
+
+body.rtl #output {
+    direction: rtl;
 }
 
 #output span {
@@ -129,7 +138,8 @@ button.clicked {
     color: #fff;
 }
 
-.last, .overflowing {
+.last,
+.overflowing {
     color: transparent;
 }
 
@@ -153,6 +163,10 @@ button.clicked {
     color: var(--color);
     right: 0.65rem;
     bottom: 0.1rem;
+}
+
+body.rtl #output.focused .cursor::after {
+    right: -0.65rem;
 }
 
 @keyframes cursor {
@@ -183,7 +197,7 @@ button.clicked {
     margin: 0 0.2vw;
 }
 
-#instructionLabel{
+#instructionLabel {
     color: var(--error-color);
     display: block;
     font-size: 0.7rem;
@@ -220,12 +234,22 @@ body.loading #loadingSpinner {
 }
 
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 
 @keyframes counterSpin {
-    from { transform: translate(-50%, -50%) rotate(0deg); }
-    to { transform: translate(-50%, -50%) rotate(-360deg); }
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
 }

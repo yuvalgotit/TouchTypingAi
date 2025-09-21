@@ -49,14 +49,16 @@ app.post('/generate-sentence', limiterPerMinute, limiterPerDay, async (req, res)
     const sanitizedSentence = sentence.slice(0, 200)
     const sanitizedkeystrokes = keystrokes.slice(-400)
     const sanitizedPracticeTopic = practiceTopic ? practiceTopic.slice(0, 30) : ''
-    const sanitizedperformanceHistory = performanceHistory.slice(-2).map(txt => txt.slice(0, 60))
+    const sanitizedperformanceHistory = performanceHistory.slice(-2).map(txt => txt.slice(0, 200))
 
-    const userPerformanceTxt = await summarizeUserPerformance(sanitizedSentence, sanitizedkeystrokes)
+    const wpm = getWPM(sanitizedSentence, sanitizedkeystrokes)
+
+    const userPerformanceTxt = await summarizeUserPerformance(sanitizedSentence, sanitizedkeystrokes, wpm)
 
     sanitizedperformanceHistory.push(userPerformanceTxt)
     sanitizedperformanceHistory.reverse()
 
-    const nextSentence = await getNextSentence(sanitizedperformanceHistory, sanitizedPracticeTopic)
+    const nextSentence = await getNextSentence(sanitizedperformanceHistory, sanitizedPracticeTopic, wpm)
 
     res.json({
       sentence: nextSentence || 'LLM Error: failed to generate sentence',
@@ -79,7 +81,9 @@ app.listen(port, () => {
 
 async function summarizeUserPerformance(sentence, keystrokes) {
   const prompt = `
-You are an AI powered touch typing coach. In a brief (less than 40 words) no bullshit, ruthless third-person sentence, what are the user weaknesses, be specific about which keys, symbols, numbers and keys sequences are you talking about but do not mention words names because your input will be taken into consideration for his next practice and we don't want to reapeat the same words.
+You are an AI powered touch typing coach. In a brief (less than 40 words) no bullshit, ruthless second-person sentence, explain to the user his weaknesses, be specific about which keys and keys sequences you're talking about but do not mention words names because your input will be taken into consideration for his next practice and we don't want to reapeat the same words.
+Do not use commas, quotes or slashes at all unless user struggle in them and you want to mention them, When you want to talk about a key just type the key, like: "You often struggle with the k key"
+Don't talk about speed, accuracy or say any encouragements, just talk about the weak points
 
 ${createUserPerformancePromptInput(sentence, keystrokes)}
 `
@@ -90,11 +94,37 @@ ${createUserPerformancePromptInput(sentence, keystrokes)}
     max_tokens: 60
   });
 
-
-  return response.choices[0].message.content.trim().slice(0, 40);
+  return response.choices[0].message.content.trim().slice(0, 200);
 }
 
-async function getNextSentence(performanceHistory, practiceTopic) {
+async function getNextSentence(performanceHistory, practiceTopic, wpm) {
+  let whichSymbolsToUse = `
+- Never use upper case letters
+- Never use punctuation
+- Never use numbers
+- Never use symbols
+`
+
+  if (wpm > 120) {
+    whichSymbolsToUse = `
+- Sprinkly some upper case letters, numbers, punctuation and symbols from time to time`
+  }
+  if (wpm > 100) {
+    whichSymbolsToUse = `
+- Never use symbols`
+  }
+  else if (wpm > 80) {
+    whichSymbolsToUse = `
+- Never use numbers
+- Never use symbols`
+  }
+  else if (wpm > 60) {
+    whichSymbolsToUse = `
+- Never use punctuation
+- Never use numbers
+- Never use symbols`
+  }
+
   const prompt = `
 You are an AI powered touch typing coach. Generate **one short sentence** or a **series of short phrases** less than 200 characters total, that the user will type exactly every char of it.
 
@@ -102,9 +132,11 @@ You are an AI powered touch typing coach. Generate **one short sentence** or a *
 - The sentence must **specifically and repeatedly** include the characters and key sequences mentioned in the "User performance" data below.
 - When focusing on a letter, incorporate it in a word or a sequences, never just by itself surronded by spaces.
 - The sentence should feel like a **focused, repetitive drill** designed to correct specific finger placement issues.
-- Do not force grammatical fluency but do stick to real words and short phrases. Occasionally, and unpredictably, insert other elements (numbers, punctuation, or special characters) to add variety and ensure exposure to a wide range of keys. Keep these insertions sparse so the main focus remains on the targeted characters.
-- Don't use commans in order to be grammatically correct but use them if the user should focus on them
+- Do not force grammatical fluency but do stick to real words and short phrases.
+- Never type a single letter surrounded by spaces, stick to words
+${whichSymbolsToUse}
 ${practiceTopic ? `- IMPORTANT! User want to practice on typing ${practiceTopic}, incorporate a lot of snippets of it` : ''}
+${practiceTopic ? `- if the user wants to practice on a language, use only this language on no other, don't mix languages` : ''}
 
 User performance:
 -${performanceHistory.join(
@@ -134,9 +166,9 @@ User performance:
   return cleanedSentence
 }
 
-function createUserPerformancePromptInput(sentence, keystrokes) {
+function createUserPerformancePromptInput(sentence, keystrokes, wpm) {
   return `
-The user wrote the sentence: "${sentence}" with ${keystrokes.filter(k => k.error).length} errors and in a speed of ${getWPM(sentence, keystrokes)} WPM.
+The user wrote the sentence: "${sentence}" with ${keystrokes.filter(k => k.error).length} errors and in a speed of ${wpm} WPM.
 Here are his keystrokes: ${JSON.stringify(keystrokes)}
   `
 }

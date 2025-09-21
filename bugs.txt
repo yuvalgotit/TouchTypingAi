@@ -1,0 +1,1 @@
+1. numbers in RTL text is messed up because of the cursor::after

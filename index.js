@@ -4,7 +4,7 @@ const HISTORY_KEY = "typingHistory";
 const NEXT_SENTENCE_KEY = "nextSentence";
 const PRACTICE_TOPIC_KEY = "practiceTopic"
 
-const WELCOME_SENTENCE = "Welcome fellow typer. Each time you type, your keystrokes are sent to an AI that learns your weak points and creates a sentence designed to help you improve."
+const WELCOME_SENTENCE = "hey i am your ai typing coach i follow every key you type and make new sentences to help with weak points you can also choose a topic or say hi to my creator yuval below"
 const NO_ERROS_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
 const tabableElements = ["INPUT", "BUTTON", "A"]
 
@@ -27,8 +27,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         requestAnimationFrame(focusInput)
     }
-    outputElement.classList.add("focused")
-    focusInput();
+
+    setTimeout(() => {
+        focusInput()
+    }, 60)
+
+    outputElement.addEventListener(("click"), () => {
+        hiddenInput.blur()
+    })
 
     hiddenInput.addEventListener("focus", () => {
         outputElement.classList.add("focused")
@@ -124,6 +130,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         sentence = localStorage.getItem(NEXT_SENTENCE_KEY) || WELCOME_SENTENCE;
 
+        if (isRTL(sentence)) {
+            document.body.classList.add("rtl")
+        } else {
+            document.body.classList.remove("rtl")
+        }
+
         outputElement.innerHTML = sentence.split('').map(c => `<span>${c}</span>`).join('') + '<span class="last">@</span>'
         outputElement.querySelector('span').className = 'cursor'
         wpmElement.textContent = ""
@@ -186,33 +198,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function getWPM() {
-        const CharsWrittenSoFar = hiddenInput.value.length;
-        const totalTimeMs = keystrokes.reduce((accumulator, currentKeystroke) => {
-            return accumulator + currentKeystroke.delta;
-        }, 0);
-        if (totalTimeMs === 0) return 0
-        const minutes = totalTimeMs / 60000;
-        const wpm = Math.round((CharsWrittenSoFar / 5) / minutes)
-
-        return wpm
-    }
-
-    function saveRun(run) {
-        let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-        history.push(run);
-
-        // since we are only sending a few to the LLM there is no reason to keep them on the local storage
-        if (history.length > 2) history = history.slice(-2);
-
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-        sessionStorage.setItem(PRACTICE_TOPIC_KEY, practiceTopicInput.value)
-    }
-
-    function getPerformanceHistory() {
-        return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-    }
-
     async function generateNextSentence() {
         document.body.classList.add('loading')
         try {
@@ -232,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (err) {
             console.error("Server error:", err);
             return sentence; // fallback
-        } finally{
+        } finally {
             document.body.classList.remove('loading')
         }
     }
@@ -240,7 +225,40 @@ document.addEventListener("DOMContentLoaded", () => {
     function newSentence(newSentence) {
         sentence = newSentence
         localStorage.setItem(NEXT_SENTENCE_KEY, newSentence);
+
         reset()
     }
 });
+
+function getWPM() {
+    const CharsWrittenSoFar = hiddenInput.value.length;
+    const totalTimeMs = keystrokes.reduce((accumulator, currentKeystroke) => {
+        return accumulator + currentKeystroke.delta;
+    }, 0);
+    if (totalTimeMs === 0) return 0
+    const minutes = totalTimeMs / 60000;
+    const wpm = Math.round((CharsWrittenSoFar / 5) / minutes)
+
+    return wpm
+}
+
+function saveRun(run) {
+    let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    history.push(run);
+
+    // since we are only sending a few to the LLM there is no reason to keep them on the local storage
+    if (history.length > 2) history = history.slice(-2);
+
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    sessionStorage.setItem(PRACTICE_TOPIC_KEY, practiceTopicInput.value)
+}
+
+function getPerformanceHistory() {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+}
+
+function isRTL(text) {
+    const rtlChars = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
+    return rtlChars.test(text);
+}
 
