@@ -158,7 +158,7 @@ async function getNextSentence(performanceHistory, practiceTopic, wpm) {
 - Never type a single letter surrounded by spaces, stick to words
 ${whichSymbolsToUse}
 ${practiceTopic ? `- IMPORTANT! User want to practice on typing ${practiceTopic}, incorporate a lot of snippets of it
-- if the user wants to practice on a language, use only this language on no other, don't mix languages
+- if the user wants to practice on a language, use only this language or no other, don't mix languages. unless he wants numbers than incorporate some numbers ranging from 0-2000 with the rest of the text
 - if the user wants to practice on a programming language or certain symbols, use the appropriate symbols even if we say we won't above, the user is the most important` : ''}
 
 AI notes from previous typing sessions:
