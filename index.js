@@ -1,11 +1,12 @@
 // because we allow arrow movments, now we aren't catching errors after the user went back
 
-const HISTORY_KEY = "typingHistory";
+const PERFORMANCE_HISTORY_KEY = "performanceHistory";
 const NEXT_SENTENCE_KEY = "nextSentence";
 const PRACTICE_TOPIC_KEY = "practiceTopic"
 
-const WELCOME_SENTENCE = "hey i am your ai typing coach i follow every key you type and make new sentences to help with weak points you can also choose a topic or say hi to my creator yuval below"
+const WELCOME_SENTENCE = "hey i am your ai typing coach i follow every key you type and make new sentences to help with weak points. down below you can choose a topic to focus on or say hi to my creator yuval"
 const NO_ERROS_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
+const AI_NOTES_PLACEHOLDER = "AI analysis will appear here after you'll finish typing"
 const tabableElements = ["INPUT", "BUTTON", "A"]
 
 let keystrokes = [];
@@ -33,6 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     hiddenInput.addEventListener("focus", () => {
         outputElement.classList.add("focused")
+        hiddenInput.selectionStart = hiddenInput.selectionEnd
     })
     hiddenInput.addEventListener("blur", () => {
         outputElement.classList.remove("focused")
@@ -87,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (hiddenInput.value[charPosition] != sentence[charPosition] && keystrokes.at(-1).key != 'Backspace') {
             const lastKeystroke = keystrokes.at(-1);
             lastKeystroke.error = true;
-            lastKeystroke.expected = sentence[charPosition]
+            lastKeystroke.expected = sentence[charPosition] ?? 'overflow' // this will be ignored since we are filtering chars that aren't length of 1
         }
 
         render()
@@ -135,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
         outputElement.querySelector('span').className = 'cursor'
         wpmElement.textContent = ""
         instructionLabel.textContent = ""
+        renderPerformance()
         runFinished = false
 
         render()
@@ -195,20 +198,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function generateNextSentence() {
         document.body.classList.add('loading')
+
+        const problematicKeys = getProblematicKeys()
+        const performanceHistory = getPerformanceHistory()
+        const practiceTopic = practiceTopicInput.value
+        const wpm = getWPM()
+
         try {
             const res = await fetch("/generate-sentence", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     sentence,
-                    keystrokes,
-                    performanceHistory: getPerformanceHistory(),
-                    practiceTopic: practiceTopicInput.value
+                    problematicKeys: problematicKeys,
+                    performanceHistory: performanceHistory,
+                    practiceTopic: practiceTopic,
+                    wpm: wpm
                 })
             });
             const data = await res.json();
+            savePerformanceHistory(data.aiNote, wpm)
             newSentence(data.sentence)
-            saveRun(data.performanceTxt)
         } catch (err) {
             console.error("Server error:", err);
             return sentence; // fallback
@@ -223,7 +233,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
         reset()
     }
+
+    function renderPerformance() {
+        let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
+        if (performanceHistory.length) {
+            const latestPerformance = performanceHistory.at(-1);
+            document.querySelector("#ainotes").innerHTML = `AI: ${latestPerformance.notes} <span class='wpm'>(${latestPerformance.wpm} WPM)</span>`
+        } else {
+            document.querySelector("#ainotes").innerHTML = AI_NOTES_PLACEHOLDER
+        }
+    }
 });
+
+// TODO: BUG? if I go back with the arrows and fix some key, the precedingKeys won't be correct right?
+function getProblematicKeys() {
+    const keystrokesWithoutLongPauses = keystrokes
+        .map((k, i) => { return { ...k, originalIndex: i } })
+        .filter(k => k.delta < 3000);
+
+    const avgDelta = keystrokesWithoutLongPauses.reduce((acc, k) => acc + k.delta, 0) / keystrokesWithoutLongPauses.length;
+    const variance = keystrokesWithoutLongPauses.reduce((acc, k) => acc + Math.pow(k.delta - avgDelta, 2), 0) / keystrokesWithoutLongPauses.length;
+    const stdDev = Math.sqrt(variance);
+
+    const slowKeysAndErrorKeys = keystrokesWithoutLongPauses
+        .filter(k =>
+            ((k.delta > avgDelta + 2 * stdDev) || k.error) && k.key.length == 1
+        )
+
+    const enrichedSlowKeysAndErrorKeys = slowKeysAndErrorKeys
+        .map(k => {
+            let speed = 'normal';
+            if (k.delta > avgDelta + 3 * stdDev) speed = "slowest";
+            else if (k.delta > avgDelta + 2.5 * stdDev) speed = "slower";
+            else if (k.delta > avgDelta + 2 * stdDev) speed = "slow";
+            else if (k.delta < avgDelta - 3 * stdDev) speed = "fastest";
+            else if (k.delta < avgDelta - 2.5 * stdDev) speed = "faster";
+            else if (k.delta < avgDelta - 2 * stdDev) speed = "fast";
+
+            let mapped = {
+                key: k.key,
+                speed,
+                precedingKeys: keystrokes
+                    .slice(0, k.originalIndex) // take everything before this keystroke
+                    .filter(pk => pk.key.length === 1) // keep only real characters
+                    .slice(-4) // take the last 4 chars
+                    .map(pk => pk.key)
+            };
+            if (k.error) {
+                mapped.error = true
+                mapped.expected = k.expected
+            }
+            return mapped
+        })
+
+    return enrichedSlowKeysAndErrorKeys
+}
 
 function getWPM() {
     const CharsWrittenSoFar = hiddenInput.value.length;
@@ -237,19 +301,19 @@ function getWPM() {
     return wpm
 }
 
-function saveRun(run) {
-    let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-    history.push(run);
+function savePerformanceHistory(aiNotes, wpm) {
+    let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
+    performanceHistory.push({wpm: wpm, notes: aiNotes});
 
-    // since we are only sending a few to the LLM there is no reason to keep them on the local storage
-    if (history.length > 2) history = history.slice(-2);
+    if (performanceHistory.length > 4) performanceHistory = performanceHistory.slice(-5);
 
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    localStorage.setItem(PERFORMANCE_HISTORY_KEY, JSON.stringify(performanceHistory));
     sessionStorage.setItem(PRACTICE_TOPIC_KEY, practiceTopicInput.value)
 }
 
 function getPerformanceHistory() {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    const performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
+    return performanceHistory.slice(-4)
 }
 
 function isRTL(text) {
