@@ -4,7 +4,7 @@ const PERFORMANCE_HISTORY_KEY = "performanceHistory";
 const NEXT_SENTENCE_KEY = "nextSentence";
 const PRACTICE_TOPIC_KEY = "practiceTopic"
 
-const WELCOME_SENTENCE = "hey i am your ai typing coach i follow your weak points while you type and make new sentences to help you improve. down below you can choose a topic to focus on or as well say hi to my creator yuval"
+const WELCOME_SENTENCE = "hey i am your ai typing coach i follow every key you type and create new sentences to help you improve. at the bottom you can choose a topic to focus on and say hi to my creator yuval"
 const NO_ERROS_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
 const AI_NOTES_PLACEHOLDER = "AI analysis will appear here after you'll finish typing"
 const tabableElements = ["INPUT", "BUTTON", "A"]
