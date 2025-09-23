@@ -26,7 +26,7 @@ header {
 }
 
 main {
-    margin: auto 10vw;
+    margin: auto calc(12vw - 3vh);
 }
 
 footer {
@@ -44,9 +44,11 @@ footer {
     background: none;
     outline: none;
     border: none;
+    border-radius: 0;
     border-bottom: 1px solid var(--unwritten-text-color);
     color: var(--text-color);
-    width: 20ch;
+    max-width: 30ch;
+    width: calc(12ch + 7vw);
     transition: all 0.2s linear;
 }
 
@@ -197,6 +199,21 @@ body.rtl #output.focused .cursor::after {
     margin: 0 0.2vw;
 }
 
+#socials #yourIdeasImg {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 256px;
+    height: 256px;
+    z-index: -1;
+    background-image: url('yourIdeas.png')
+}
+
+#socials.focused #yourIdeasImg {
+    background-image: url('yourIdeasFocused.png')
+}
+
+
 #instructionLabel {
     color: var(--mistype-color);
 }
@@ -274,9 +291,23 @@ body.loading #loadingSpinner {
     justify-content: right;
     align-items: center;
     gap: 1rem;
-    padding: 1.5rem;
+    padding: 1.2rem;
 }
 
-#performance{
-    margin-top: 3vh;
+figure {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background-color: #1b1f27;
+    border-radius: 1rem;
+    margin: 0 2vh 1vh 0;
+    padding: 1vh 1vh 1vh 0;
+}
+
+figure figcaption {
+    margin-left: 1vh;
+}
+
+figure img {
+    height: 4rem;
 }

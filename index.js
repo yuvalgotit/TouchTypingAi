@@ -4,9 +4,9 @@ const PERFORMANCE_HISTORY_KEY = "performanceHistory";
 const NEXT_SENTENCE_KEY = "nextSentence";
 const PRACTICE_TOPIC_KEY = "practiceTopic"
 
-const WELCOME_SENTENCE = "hey i am your ai typing coach i follow every key you type and create new sentences to help you improve. at the bottom you can choose a topic to focus on and say hi to my creator yuval"
+const WELCOME_SENTENCE = "welcome to the future of typing, where flam ai listens to you type and creates new sentences to help you improve."
 const NO_MISTYPES_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
-const AI_NOTES_PLACEHOLDER = "AI analysis will appear here after you'll finish typing"
+const AI_NOTES_PLACEHOLDER = "Hey I'm Flam, your AI typing coach. Write your first sentence to get started"
 const tabableElements = ["INPUT", "BUTTON", "A"]
 
 let keystrokes = [];
@@ -23,10 +23,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const outputElement = document.getElementById("output");
     const wpmElement = document.getElementById("wpm")
     const instructionLabel = document.getElementById("instructionLabel")
+    const socialsElement = document.getElementById("socials")
 
     function focusInput() {
         if (document.activeElement != hiddenInput && !tabableElements.includes(document.activeElement.tagName)) {
+            socialsElement.classList.remove("focused")
             hiddenInput.focus()
+        } else if (document.activeElement.parentElement === socialsElement) {
+            socialsElement.classList.add("focused")
+        } else {
+            socialsElement.classList.remove("focused")
         }
         requestAnimationFrame(focusInput)
     }
@@ -253,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
         if (performanceHistory.length) {
             const latestPerformance = performanceHistory.at(-1);
-            document.querySelector("#ainotes").innerHTML = `AI: ${latestPerformance.notes} <span class='wpm'>(${latestPerformance.wpm} WPM)</span>`
+            document.querySelector("#ainotes").innerHTML = `${latestPerformance.notes} <span class='wpm'>(${latestPerformance.wpm} WPM)</span>`
         } else {
             document.querySelector("#ainotes").innerHTML = AI_NOTES_PLACEHOLDER
         }

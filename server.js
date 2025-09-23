@@ -71,7 +71,7 @@ app.post('/generate-sentence', limiterPerMinute, limiterPerDay, async (req, res)
 
     const newAiNotes = await summarizeUserPerformance(sanitizedSentence, sanitizedProblematicKeys, wpm, sanitizedPerformanceHistory)
 
-    sanitizedPerformanceHistory.push({wpm: wpm, notes: newAiNotes })
+    sanitizedPerformanceHistory.push({ wpm: wpm, notes: newAiNotes })
     sanitizedPerformanceHistory.reverse()
 
     const nextSentence = await getNextSentence(sanitizedPerformanceHistory, sanitizedPracticeTopic, wpm)
@@ -96,7 +96,7 @@ app.listen(port, () => {
 });
 
 async function summarizeUserPerformance(sentence, problematicKeys, wpm, performanceHistory) {
-  const prompt = `You are an AI powered touch typing coach. In a brief (less than 25 words) no bullshit, ruthless second-person sentence, explain to the user his main weaknesses, be specific about which key or keys sequence you're talking about
+  const prompt = `You are an AI powered touch typing coach named Flan. In a brief (less than 25 words) no bullshit, ruthless second-person sentence, explain to the user his main weaknesses, be specific about which key or keys sequence you're talking about
 - Do not use commas, quotes or slashes at all unless user struggle in them and you want to mention them, When you want to talk about a key just type the key
 - Identify recurring sequence or transition where mistypes cluster together. If multiple consecutive keystrokes fail, report the sequence itself instead of each key.
 - Don't use any encouragements, just talk about the main weak point without any improvment suggestions or flufh.
@@ -104,8 +104,8 @@ async function summarizeUserPerformance(sentence, problematicKeys, wpm, performa
 The user wrote the sentence: "${sentence}" with ${problematicKeys.filter(k => k.mistyped).length} mistypes and at the speed of ${wpm} WPM.
 ${problematicKeys.length === 0
       ? 'user have not problematic keystrokes, feel free to go down on him sarcasticaly, be short and not specific'
-      : problematicKeys.length === 1
-        ? `user has one problematic keystrokes, feel free to be sarcastic about it: ${JSON.stringify(problematicKeys[0])}`
+      : problematicKeys.filter(pk => pk.mistyped).length === 0
+        ? `user made no mistypes, feel free to be a bit sarcastic when analyzing it: ${JSON.stringify(problematicKeys)}`
         : `Here are his problematic keystrokes: ${JSON.stringify(problematicKeys)}`
     }
 
@@ -147,7 +147,7 @@ async function getNextSentence(performanceHistory, practiceTopic, wpm) {
   }
 
   // TODO: 20 % of the sentence should be easy and unrelated, is very important, double down on that
-  const prompt = `You are an AI powered touch typing coach. Generate ** one short sentence ** or a ** series of short phrases ** less than 200 characters total, that the user will type exactly every char of it.
+  const prompt = `You are an AI powered touch typing coach named Flan. Generate ** one short sentence ** or a ** series of short phrases ** less than 200 characters total, that the user will type exactly every char of it.
 
 - Don't have any introduction, no preface and no foreword before the text because the user is typing every char of your output
   - The sentence must ** specifically and repeatedly ** include the characters and key sequences mentioned in the "AI notes from previous typing sessions" data below.
