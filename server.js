@@ -96,7 +96,7 @@ app.listen(port, () => {
 });
 
 async function summarizeUserPerformance(sentence, problematicKeys, wpm, performanceHistory) {
-  const prompt = `You are an AI powered touch typing coach named Flan. In a brief (less than 25 words) no bullshit, ruthless second-person sentence, explain to the user his main weaknesses, be specific about which key or keys sequence you're talking about
+  const prompt = `You are an AI powered touch typing coach named Flam. In a brief (less than 25 words) no bullshit, ruthless second-person sentence, explain to the user his main weaknesses, be specific about which key or keys sequence you're talking about
 - Do not use commas, quotes or slashes at all unless user struggle in them and you want to mention them, When you want to talk about a key just type the key
 - Identify recurring sequence or transition where mistypes cluster together. If multiple consecutive keystrokes fail, report the sequence itself instead of each key.
 - Don't use any encouragements, just talk about the main weak point without any improvment suggestions or flufh.
@@ -147,7 +147,7 @@ async function getNextSentence(performanceHistory, practiceTopic, wpm) {
   }
 
   // TODO: 20 % of the sentence should be easy and unrelated, is very important, double down on that
-  const prompt = `You are an AI powered touch typing coach named Flan. Generate ** one short sentence ** or a ** series of short phrases ** less than 200 characters total, that the user will type exactly every char of it.
+  const prompt = `You are an AI powered touch typing coach named Flam. Generate ** one short sentence ** or a ** series of short phrases ** less than 200 characters total, that the user will type exactly every char of it.
 
 - Don't have any introduction, no preface and no foreword before the text because the user is typing every char of your output
   - The sentence must ** specifically and repeatedly ** include the characters and key sequences mentioned in the "AI notes from previous typing sessions" data below.
