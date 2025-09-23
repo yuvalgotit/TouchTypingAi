@@ -58,7 +58,7 @@ app.post('/generate-sentence', limiterPerMinute, limiterPerDay, async (req, res)
         && (k.precedingKeys[2] === undefined || k.precedingKeys[2].length === 1)
         && (k.precedingKeys[3] === undefined || k.precedingKeys[3].length === 1)
         && (k.expected === undefined || k.expected.length === 1)
-        && (k.error === undefined || k.error === true))
+        && (k.mistyped === undefined || k.mistyped === true))
 
 
     const sanitizedPracticeTopic = practiceTopic ? practiceTopic.slice(0, 30) : ''
@@ -98,10 +98,10 @@ app.listen(port, () => {
 async function summarizeUserPerformance(sentence, problematicKeys, wpm, performanceHistory) {
   const prompt = `You are an AI powered touch typing coach. In a brief (less than 25 words) no bullshit, ruthless second-person sentence, explain to the user his main weaknesses, be specific about which key or keys sequence you're talking about
 - Do not use commas, quotes or slashes at all unless user struggle in them and you want to mention them, When you want to talk about a key just type the key
-- Identify recurring sequence or transition where errors cluster together. If multiple consecutive keystrokes fail, report the sequence itself instead of each key.
+- Identify recurring sequence or transition where mistypes cluster together. If multiple consecutive keystrokes fail, report the sequence itself instead of each key.
 - Don't use any encouragements, just talk about the main weak point without any improvment suggestions or flufh.
 
-The user wrote the sentence: "${sentence}" with ${problematicKeys.filter(k => k.error).length} errors and at the speed of ${wpm} WPM.
+The user wrote the sentence: "${sentence}" with ${problematicKeys.filter(k => k.mistyped).length} mistypes and at the speed of ${wpm} WPM.
 ${problematicKeys.length === 0
       ? 'user have not problematic keystrokes, feel free to go down on him sarcasticaly, be short and not specific'
       : problematicKeys.length === 1

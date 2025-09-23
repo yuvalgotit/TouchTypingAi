@@ -11,21 +11,32 @@
 <body>
     <script src="index.js"></script>
     <header>
-        <h1>TouchTyping<span>Ai</span></h1>
+        <h1>TouchTyping.<span>Ai</span></h1>
         <div id="loadingSpinner"></div>
     </header>
     <main>
         <input id="hiddenInput" type="text" autocomplete="off" maxlength="210">
-        <article class="box" id="output">
+        <article class="box">
+            <div id="output"></div>
+            <button id="showMobileKeyboardBtn" tabindex="-1">Click here to start</button>
         </article>
-        <label id="instructionLabel"></label>
+        <div id="textFooter">
+            <label id="instructionLabel"></label>
+            <button id="resetBtn">
+                <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24px" height="24px"
+                    fill="currentColor">
+                    <title>Redo</title>
+                    <path d="M21.5 12.5a9.5 9.5 0 1 1-9.5-9.5V0l5 4-5 4V5.5a7.5 7.5 0 1 0 7.5 7.5h2z" />
+                </svg>
+            </button>
+        </div>
         <div id="wpm"></div>
-        <div id="performance" class="box">
+        <div id="performance">
             <p id="ainotes"></p>
-        </div>     
+        </div>
     </main>
     <footer>
-        <input id="practiceTopicInput" type="text" maxlength="30" placeholder="choose a topic" />
+        <input id="practiceTopicInput" type="text" maxlength="30" placeholder="choose next topic" />
         <button id="clearHistoryButton">Wipe data</button>
         <nav id="socials">
             <a href="https://www.instagram.com/yuvalgotit/" title="instagram" target="_blank" rel="noopener noreferrer">

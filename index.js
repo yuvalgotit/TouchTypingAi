@@ -1,11 +1,11 @@
-// because we allow arrow movments, now we aren't catching errors after the user went back
+// because we allow arrow movments, now we aren't catching mistypes after the user went back
 
 const PERFORMANCE_HISTORY_KEY = "performanceHistory";
 const NEXT_SENTENCE_KEY = "nextSentence";
 const PRACTICE_TOPIC_KEY = "practiceTopic"
 
 const WELCOME_SENTENCE = "hey i am your ai typing coach i follow every key you type and create new sentences to help you improve. at the bottom you can choose a topic to focus on and say hi to my creator yuval"
-const NO_ERROS_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
+const NO_MISTYPES_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
 const AI_NOTES_PLACEHOLDER = "AI analysis will appear here after you'll finish typing"
 const tabableElements = ["INPUT", "BUTTON", "A"]
 
@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const hiddenInput = document.getElementById("hiddenInput");
     const practiceTopicInput = document.getElementById("practiceTopicInput");
     const clearHistoryButton = document.getElementById("clearHistoryButton")
+    const showMobileKeyboardBtn = document.getElementById("showMobileKeyboardBtn")
+    const resetBtn = document.getElementById("resetBtn");
     const outputElement = document.getElementById("output");
     const wpmElement = document.getElementById("wpm")
     const instructionLabel = document.getElementById("instructionLabel")
@@ -55,6 +57,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 200);
     })
 
+    showMobileKeyboardBtn.addEventListener(("click"), () => {
+        hiddenInput.focus()
+    })
+
+    resetBtn.addEventListener(("click"), () => {
+        reset()
+        hiddenInput.focus()
+    })
+
     hiddenInput.addEventListener("keydown", (event) => {
         const now = performance.now()
 
@@ -88,19 +99,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (hiddenInput.value[charPosition] != sentence[charPosition] && keystrokes.at(-1).key != 'Backspace') {
             const lastKeystroke = keystrokes.at(-1);
-            lastKeystroke.error = true;
+            lastKeystroke.mistyped = true;
             lastKeystroke.expected = sentence[charPosition] ?? 'overflow' // this will be ignored since we are filtering chars that aren't length of 1
         }
 
         render()
-        if (hiddenInput.value.length < sentence.length) {
-            instructionLabel.textContent = ""
-        }
-        else if (hiddenInput.value === sentence) {
+        if (hiddenInput.value === sentence) {
             runFinishedSuccessfully()
         }
-        else {
-            instructionLabel.textContent = NO_ERROS_INSTRUCTION
+        else if (sentence.indexOf(hiddenInput.value) !== 0 &&
+            (hiddenInput.value.length > sentence.length
+                || hiddenInput.value.slice(-7) == sentence.slice(charPosition - 6, charPosition + 1) // there is an mistype and the last 7 chars are correct
+                || getTotalMistypes() > 4)) {
+            instructionLabel.textContent = NO_MISTYPES_INSTRUCTION
+        }
+        else if (instructionLabel.textContent != "" && sentence.indexOf(hiddenInput.value) === 0) {
+            // only if the mistypes were cleared
+            instructionLabel.textContent = ""
         }
     });
 
@@ -161,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 s.className = "correct"
             }
             else {
-                s.className = "error"
+                s.className = "mistype"
                 s.setAttribute("data-pressed", hiddenInput.value[i]);
             }
 
@@ -179,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let j = 0; j < extraChars; j++) {
             const span = document.createElement('span');
             const char = hiddenInput.value[sentence.length + j]
-            span.className = "error overflowing";
+            span.className = "mistype overflowing";
             span.textContent = char
             span.setAttribute("data-pressed", char);
             outputElement.insertBefore(span, outputElement.querySelector('.last'));
@@ -243,9 +258,24 @@ document.addEventListener("DOMContentLoaded", () => {
             document.querySelector("#ainotes").innerHTML = AI_NOTES_PLACEHOLDER
         }
     }
+
+    function getTotalMistypes() {
+        const minLength = Math.min(hiddenInput.value.length, sentence.length);
+        let totalMistypes = 0;
+
+        for (let i = 0; i < minLength; i++) {
+            if (hiddenInput.value[i] !== sentence[i]) {
+                totalMistypes++;
+            }
+        }
+
+        return totalMistypes;
+    }
 });
 
 // TODO: BUG? if I go back with the arrows and fix some key, the precedingKeys won't be correct right?
+
+// 🎈🎈🎈 IDEA: maybe we still need to have pos on each element so the ai will see if the mistakes are on the same place of the sentence 🎈
 function getProblematicKeys() {
     const keystrokesWithoutLongPauses = keystrokes
         .map((k, i) => { return { ...k, originalIndex: i } })
@@ -255,12 +285,12 @@ function getProblematicKeys() {
     const variance = keystrokesWithoutLongPauses.reduce((acc, k) => acc + Math.pow(k.delta - avgDelta, 2), 0) / keystrokesWithoutLongPauses.length;
     const stdDev = Math.sqrt(variance);
 
-    const slowKeysAndErrorKeys = keystrokesWithoutLongPauses
+    const slowKeysAndMistypedKeys = keystrokesWithoutLongPauses
         .filter(k =>
-            ((k.delta > avgDelta + 2 * stdDev) || k.error) && k.key.length == 1
+            ((k.delta > avgDelta + 2 * stdDev) || k.mistyped) && k.key.length == 1
         )
 
-    const enrichedSlowKeysAndErrorKeys = slowKeysAndErrorKeys
+    const enrichedSlowKeysAndMistypedKeys = slowKeysAndMistypedKeys
         .map(k => {
             let speed = 'normal';
             if (k.delta > avgDelta + 3 * stdDev) speed = "slowest";
@@ -279,14 +309,14 @@ function getProblematicKeys() {
                     .slice(-4) // take the last 4 chars
                     .map(pk => pk.key)
             };
-            if (k.error) {
-                mapped.error = true
+            if (k.mistyped) {
+                mapped.mistyped = true
                 mapped.expected = k.expected
             }
             return mapped
         })
 
-    return enrichedSlowKeysAndErrorKeys
+    return enrichedSlowKeysAndMistypedKeys
 }
 
 function getWPM() {
@@ -303,7 +333,7 @@ function getWPM() {
 
 function savePerformanceHistory(aiNotes, wpm) {
     let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
-    performanceHistory.push({wpm: wpm, notes: aiNotes});
+    performanceHistory.push({ wpm: wpm, notes: aiNotes });
 
     if (performanceHistory.length > 4) performanceHistory = performanceHistory.slice(-5);
 
