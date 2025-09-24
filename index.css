@@ -40,22 +40,6 @@ footer {
     padding: 12px 15px;
 }
 
-#practiceTopicInput {
-    background: none;
-    outline: none;
-    border: none;
-    border-radius: 0;
-    border-bottom: 1px solid var(--unwritten-text-color);
-    color: var(--text-color);
-    max-width: 30ch;
-    width: calc(12ch + 7vw);
-    transition: all 0.2s linear;
-}
-
-#practiceTopicInput:focus {
-    border-bottom: 1px solid var(--text-color);
-}
-
 h1 {
     margin: 0;
     font-size: clamp(1.8rem, 2vw + 1rem, 2.2rem);
@@ -139,6 +123,11 @@ body.rtl #output {
     color: #fff;
 }
 
+#resetBtn svg {
+    position: relative;
+    top: 1.75px;
+}
+
 .last,
 .overflowing {
     color: transparent;
@@ -219,15 +208,6 @@ body.rtl #output.focused .cursor::after {
     color: var(--mistype-color);
 }
 
-#ainotes {
-    color: var(--ai-color);
-    font-size: clamp(0.7rem, 1vw + 0.6rem, 1rem);
-}
-
-#ainotes .wpm {
-    color: #81667A
-}
-
 #showMobileKeyboardBtn {
     position: absolute;
     top: -5%;
@@ -248,17 +228,45 @@ body.rtl #output.focused .cursor::after {
 
 #flam {
     display: flex;
+    gap: 1.2vh;
     flex-direction: row;
     align-items: center;
     background-color: #1b1f27;
+    color: var(--ai-color);
     border-radius: 1rem;
     margin: 0 2vh 1vh 0;
     padding: 1vh 1vh 1vh 0;
     position: relative;
 }
 
-#flam #ainotes {
-    margin-left: 1.5vh;
+#flam figcaption{
+    min-width: 80%
+}
+
+#ainotes {
+    color: var(--ai-color);
+    font-size: clamp(0.7rem, 1vw + 0.6rem, 1rem);
+    margin-left: 1px;
+}
+
+#ainotes .wpm {
+    color: #81667A
+}
+
+#practiceTopicInput {
+    background: none;
+    outline: none;
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--unwritten-text-color);
+    color: var(--text-color);
+    width: 90%;
+    max-width: 40ch;
+    transition: all 0.2s linear;
+}
+
+#practiceTopicInput:focus {
+    border-bottom: 1px solid var(--text-color);
 }
 
 #flam img {

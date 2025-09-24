@@ -117,10 +117,13 @@ document.addEventListener("DOMContentLoaded", () => {
         if (hiddenInput.value === sentence) {
             runFinishedSuccessfully()
         }
-        else if (sentence.indexOf(hiddenInput.value) !== 0 &&
-            (hiddenInput.value.length > sentence.length
-                || hiddenInput.value.slice(-7) == sentence.slice(charPosition - 6, charPosition + 1) // there is an mistype and the last 7 chars are correct
-                || getTotalMistypes() > 4)) {
+        if (sentence.indexOf(hiddenInput.value) === 0) {
+            instructionLabel.textContent = ""
+        }
+        else if (hiddenInput.value.length > sentence.length
+            || hiddenInput.value.slice(-7) == sentence.slice(charPosition - 6, charPosition + 1)  // there is an mistype and the last 7 chars are correct
+            || getTotalMistypes() > 4
+        ) {
             instructionLabel.textContent = NO_MISTYPES_INSTRUCTION
         }
         else if (instructionLabel.textContent != "" && sentence.indexOf(hiddenInput.value) === 0) {
@@ -264,7 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
         if (performanceHistory.length) {
             const latestPerformance = performanceHistory.at(-1);
-            document.querySelector("#ainotes").innerHTML = `${latestPerformance.notes} <span class='wpm'>(${latestPerformance.wpm} WPM)</span>`
+            document.querySelector("#ainotes").innerHTML = `${latestPerformance.notes} <span class='wpm'>(speed: ${latestPerformance.wpm} WPM)</span>`
         } else {
             document.querySelector("#ainotes").innerHTML = AI_NOTES_PLACEHOLDER
         }
