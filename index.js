@@ -282,6 +282,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         return totalMistypes;
     }
+
+    // preloading this so it won't flick for the first time
+    const preloadImage = new Image();
+    preloadImage.src = 'yourIdeasFocused.png';
 });
 
 // TODO: BUG? if I go back with the arrows and fix some key, the precedingKeys won't be correct right?
