@@ -1,4 +1,6 @@
 // because we allow arrow movments, now we aren't catching mistypes after the user went back
+// shift can take a lot of time but the char after it won't and we ignore it
+// in a sequence of errors, isn't only the first letter really matter?
 
 const PERFORMANCE_HISTORY_KEY = "performanceHistory";
 const NEXT_SENTENCE_KEY = "nextSentence";
@@ -7,6 +9,8 @@ const PRACTICE_TOPIC_KEY = "practiceTopic"
 const WELCOME_SENTENCE = "welcome to the future of typing, where flam ai listens to you type and creates new sentences to help you improve."
 const NO_MISTYPES_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
 const AI_NOTES_PLACEHOLDER = "Hey I'm Flam, your AI typing coach. Write your first sentence to get started"
+const AI_NOTES_LOADING = "Thinking..."
+
 const tabableElements = ["INPUT", "BUTTON", "A"]
 
 let keystrokes = [];
@@ -219,6 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function generateNextSentence() {
         document.body.classList.add('loading')
+        document.querySelector("#ainotes").innerHTML = AI_NOTES_LOADING
 
         const problematicKeys = getProblematicKeys()
         const performanceHistory = getPerformanceHistory()

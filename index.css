@@ -193,6 +193,7 @@ body.rtl #output.focused .cursor::after {
     top: 45vh;
     width: 100vw;
     text-align: center;
+    z-index: 2;
 }
 
 #socials a {
@@ -216,55 +217,6 @@ body.rtl #output.focused .cursor::after {
 
 #instructionLabel {
     color: var(--mistype-color);
-}
-
-#loadingSpinner {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 4px solid var(--text-color);
-    border-top: 4px solid var(--ai-color);
-    animation: spin 1s linear infinite;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    display: none;
-}
-
-#loadingSpinner::after {
-    content: 'AI';
-    position: absolute;
-    font-size: 0.6rem;
-    color: var(--ai-color);
-    font-weight: bold;
-    top: 50%;
-    left: 50%;
-    animation: counterSpin 1s linear infinite;
-}
-
-body.loading #loadingSpinner {
-    display: flex;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-
-@keyframes counterSpin {
-    from {
-        transform: translate(-50%, -50%) rotate(0deg);
-    }
-
-    to {
-        transform: translate(-50%, -50%) rotate(-360deg);
-    }
 }
 
 #ainotes {
@@ -291,10 +243,10 @@ body.loading #loadingSpinner {
     justify-content: right;
     align-items: center;
     gap: 1rem;
-    padding: 1.2rem;
+    padding: 0.3rem 1.5rem 1rem 1.5rem;
 }
 
-figure {
+#flam {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -302,12 +254,40 @@ figure {
     border-radius: 1rem;
     margin: 0 2vh 1vh 0;
     padding: 1vh 1vh 1vh 0;
+    position: relative;
 }
 
-figure figcaption {
-    margin-left: 1vh;
+#flam #ainotes {
+    margin-left: 1.5vh;
 }
 
-figure img {
+#flam img {
     height: 4rem;
+    border-radius: 50%;
+}
+
+#flam #loadingSpinner {
+    position: absolute;
+    left: -1px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #c4c4c4;
+    border-top: 3px solid #c62e65;
+    display: none;
+}
+
+body.loading #flam #loadingSpinner {
+    display: block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
