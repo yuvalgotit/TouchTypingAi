@@ -4,7 +4,7 @@ const PRACTICE_TOPIC_KEY = "practiceTopic"
 const SYMBOLS_CHECKBOX_KEY = "symbols"
 const NUMBERS_CHECKBOX_KEY = "numbers"
 
-const WELCOME_SENTENCE = "welcome to the future of typing where flam ai listens to you type and creates new sentences to help you improve"
+const WELCOME_SENTENCE = "start by typing this sentence so flam can get learn your typing style"
 const NO_MISTYPES_INSTRUCTION = "Finish without mistakes"
 const AI_NOTES_PLACEHOLDER = "Hey, my name is Flam and I'll be your typing coach. Every round I'll create a new sentence for you to type based on what I think you should focus on."
 const AI_NOTES_LOADING = "Thinking..."
