@@ -15,17 +15,15 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// 5 requests per minute
 const limiterPerMinute = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 5,
+  max: 6,
   message: {
     sentence: "Too many requests! Please slow down and continue typing.",
     performanceTxt: ''
   },
 });
 
-// 600 requests per day
 const limiterPerDay = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 600,
@@ -35,9 +33,35 @@ const limiterPerDay = rateLimit({
   },
 });
 
+const errorSentences = [
+  'Flam tripped over his own long legs - try again.',
+  'The flamingo dropped the keyboard in the lake.',
+  'Flam is busy preening his feathers, come back soon.',
+  'Oops - Flam pecked the wrong key!',
+  'Server overheated, Flam fanned it with his wings.',
+  'Flam fell asleep standing on one leg - wake him with another try.',
+  'Typing got too hot, Flam had to cool his feathers.',
+  'Flam is chasing bugs (literally and in the code).',
+  "The flamingo's rhythm got thrown off, please retry.",
+  'Flam squawked at the server and it crashed - sorry!'
+];
+
+const generationFallbacks = [
+  'Flam forgot what he was about to say.',
+  'The flamingo froze mid-sentence.',
+  'Flam pecked the wrong keys and lost the sentence.',
+  "Flam's feathers got in the way of the keyboard.",
+  'Oops - Flam flew off before finishing the sentence.',
+  'Flam was distracted by his reflection in the screen.',
+  'The flamingo is speechless right now.',
+  'Flam dropped the sentence into the lake.',
+  'Server hiccup - Flam squawked and scared off the words.',
+  'Flam tried to type but his beak got stuck on the spacebar.'
+];
+
 app.post('/generate-sentence', limiterPerMinute, limiterPerDay, async (req, res) => {
   try {
-    const { sentence, problematicKeys, practiceTopic, performanceHistory = [], wpm } = req.body;
+    const { sentence, problematicKeys, practiceTopic, performanceHistory = [], performance } = req.body;
     const speeds = ["slowest", "slower", "slow", "fastest", "faster", "fast", "normal"]
 
     if (typeof sentence !== 'string' || !Array.isArray(problematicKeys)) {
@@ -47,7 +71,7 @@ app.post('/generate-sentence', limiterPerMinute, limiterPerDay, async (req, res)
       });
     }
 
-    const sanitizedSentence = sentence.slice(0, 200)
+    const sanitizedSentence = sentence.slice(0, 150)
     const sanitizedProblematicKeys = problematicKeys.slice(-15)
       .filter(k => k.key.length === 1
         && speeds.includes(k.speed)
@@ -62,31 +86,68 @@ app.post('/generate-sentence', limiterPerMinute, limiterPerDay, async (req, res)
 
 
     const sanitizedPracticeTopic = practiceTopic ? practiceTopic.slice(0, 30) : ''
-    const sanitizedPerformanceHistory = performanceHistory.slice(-4).map(performance => {
+    const sanitizedPerformance = {
+      accuracy: sanitizePrecenteage(performance.accuracy),
+      consistency: sanitizePrecenteage(performance.consistency),
+      wpm: sanitizeWPM(performance.wpm)
+    }
+    const sanitizedPerformanceHistory = performanceHistory.slice(-4).map(ph => {
       return {
-        wpm: sanitizeWPM(performance.wpm),
-        notes: performance.notes.slice(0, 150)
+        accuracy: sanitizePrecenteage(ph.accuracy),
+        consistency: sanitizePrecenteage(ph.consistency),
+        wpm: sanitizeWPM(ph.wpm),
+        notes: ph.notes.slice(0, 150)
       }
     })
 
-    const newAiNotes = await summarizeUserPerformance(sanitizedSentence, sanitizedProblematicKeys, wpm, sanitizedPerformanceHistory)
+    const newAiNotes = await summarizeUserPerformance(sanitizedSentence, sanitizedProblematicKeys, sanitizedPerformance, sanitizedPerformanceHistory)
 
-    sanitizedPerformanceHistory.push({ wpm: wpm, notes: newAiNotes })
+    sanitizedPerformanceHistory.push({ accuracy: sanitizedPerformance.accuracy, consistency: sanitizedPerformance.consistency, wpm: sanitizedPerformance.wpm, notes: newAiNotes })
     sanitizedPerformanceHistory.reverse()
 
-    const nextSentence = await getNextSentence(sanitizedPerformanceHistory, sanitizedPracticeTopic, wpm)
+    const nextSentence = await getNextSentence(sanitizedPerformanceHistory, sanitizedPracticeTopic, sanitizedPerformance.wpm)
 
     res.json({
-      sentence: nextSentence || 'LLM Error: failed to generate sentence',
+      sentence: nextSentence || generationFallbacks[Math.floor(Math.random() * generationFallbacks.length)],
       aiNote: newAiNotes
     });
 
   } catch (err) {
-    console.error(err);
+    const randomSentence = errorSentences[Math.floor(Math.random() * errorSentences.length)];
 
     res.status(500).json({
-      sentence: 'Internal server error, sorry for the inconvenience.',
-      aiNotes: ''
+      sentence: randomSentence,
+      aiNote: "AI connection isn't working right now, so I can't process your typing and produce feedback"
+    });
+  }
+});
+
+app.post('/regenerate-sentence', limiterPerMinute, limiterPerDay, async (req, res) => {
+  try {
+    const { practiceTopic, performanceHistory = [] } = req.body;
+
+    const sanitizedPracticeTopic = practiceTopic ? practiceTopic.slice(0, 30) : ''
+    const sanitizedPerformanceHistory = performanceHistory.slice(-4).map(ph => {
+      return {
+        accuracy: sanitizePrecenteage(ph.accuracy),
+        consistency: sanitizePrecenteage(ph.consistency),
+        wpm: sanitizeWPM(ph.wpm),
+        notes: ph.notes.slice(0, 150)
+      }
+    })
+
+    const nextSentence = await getNextSentence(sanitizedPerformanceHistory, sanitizedPracticeTopic, sanitizedPerformanceHistory?.wpm)
+
+    res.json({
+      sentence: nextSentence || generationFallbacks[Math.floor(Math.random() * generationFallbacks.length)],
+    });
+
+  } catch (err) {
+    const randomSentence = errorSentences[Math.floor(Math.random() * errorSentences.length)];
+    console.log(err);
+
+    res.status(500).json({
+      sentence: randomSentence,
     });
   }
 });
@@ -95,23 +156,23 @@ app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
 
-async function summarizeUserPerformance(sentence, problematicKeys, wpm, performanceHistory) {
-  const prompt = `You are an AI powered touch typing coach named Flam. In a brief (less than 25 words) no bullshit, ruthless second-person sentence, explain to the user his main weaknesses, be specific about which key or keys sequence you're talking about
-- Do not use commas, quotes or slashes at all unless user struggle in them and you want to mention them, When you want to talk about a key just type the key
-- Identify recurring sequence or transition where mistypes cluster together. If multiple consecutive keystrokes fail, report the sequence itself instead of each key.
-- Don't use any encouragements, just talk about the main weak point without any improvment suggestions or flufh.
+async function summarizeUserPerformance(sentence, problematicKeys, performance, performanceHistory) {
+  const prompt = `You are an AI powered touch typing coach named Flam. In a brief (less than 25 words) no bullshit, ruthless second-person sentence, explain to the user what he should focus on next
+- your way of coaching is first making sure accuracy is high because no mistakes are the basis of good typing.
+- If accuracy is less than 97%, tell him he should focus on the keys/key sequences he made a mistake in (don't literally say that but just say the actual key sequences like "You often make mistake in the 'ing' sequence")
+- If accuracy is high, tell him he should foxus on the keys/key sequences he was the slowest at (again, saying something like "You type t slow when it's after a, let's focus on that)
+Don't use any blend encouragements or flufh.
 
-The user wrote the sentence: "${sentence}" with ${problematicKeys.filter(k => k.mistyped).length} mistypes and at the speed of ${wpm} WPM.
+The user wrote the sentence: "${sentence}" with and accuracy of ${performance.accuracy}%, consistency of ${performance.consistency}% and speed of ${performance.wpm} WPM.
+
 ${problematicKeys.length === 0
       ? 'user have not problematic keystrokes, feel free to go down on him sarcasticaly, be short and not specific'
-      : problematicKeys.filter(pk => pk.mistyped).length === 0
-        ? `user made no mistypes, feel free to be a bit sarcastic when analyzing it: ${JSON.stringify(problematicKeys)}`
-        : `Here are his problematic keystrokes: ${JSON.stringify(problematicKeys)}`
-    }
+      : `Here are his problematic keystrokes: ${JSON.stringify(problematicKeys)}`
+}
 
 ${performanceHistory.length ? `
 By the way, here is the history of what you wrote him recently:
-${performanceHistory.map(performance => `- [${wpm}wpm] ${performance.notes}`).join(`
+${performanceHistory.map(performance => `- ${performance.notes}`).join(`
 `)}` : ''
     }
 `
@@ -125,45 +186,27 @@ ${performanceHistory.map(performance => `- [${wpm}wpm] ${performance.notes}`).jo
 }
 
 async function getNextSentence(performanceHistory, practiceTopic, wpm) {
-  let whichSymbolsToUse = `- Never use upper case letters
-- Never use punctuation
-- Never use numbers
-- Never use symbols`
-
-  if (wpm > 100) {
-    whichSymbolsToUse = `- Sprinkly some upper case letters, numbers, punctuation and symbols from time to time`
-  }
-  if (wpm > 80) {
-    whichSymbolsToUse = `- Never use symbols`
-  }
-  else if (wpm > 70) {
-    whichSymbolsToUse = `- Never use numbers
-- Never use symbols`
-  }
-  else if (wpm > 60) {
-    whichSymbolsToUse = `- Never use punctuation
-- Never use numbers
-- Never use symbols`
-  }
-
-  // TODO: 20 % of the sentence should be easy and unrelated, is very important, double down on that
-  const prompt = `You are an AI powered touch typing coach named Flam. Generate ** one short sentence ** or a ** series of short phrases ** less than 200 characters total, that the user will type exactly every char of it.
+  const prompt = `You are an AI powered touch typing coach named Flam. Generate ** one short sentence ** or a ** series of short phrases ** less than 150 characters total, that the user will type exactly every char of it.
 
 - Don't have any introduction, no preface and no foreword before the text because the user is typing every char of your output
-  - The sentence must ** specifically and repeatedly ** include the characters and key sequences mentioned in the "AI notes from previous typing sessions" data below.
-- When focusing on a letter, incorporate it in a word or a sequences, never just by itself surronded by spaces, for example if focusing on the letter m, never "m m m" but "mom makes me more".
+- The sentence must specifically include the characters and key sequences mentioned in the "notes from previous typing sessions" data below.
+- Never have a char just by it self surronded by spaces, lean toward real sequences, length greater than 2.
+- Don't repeat the same word more than 2 times
 - The sentence should feel like a ** focused, repetitive drill ** designed to correct specific finger placement issues.
-- 20 % of the sentence should not focus on the "AI notes from previous typing sessions" but be random simple words from the top 100. the idea is to give the user 20 % easy words to type for small wins
-  - Do not force grammatical fluency but do stick to real words and short phrases.
-- Never type a single letter surrounded by spaces, stick to words
-${whichSymbolsToUse}
-${practiceTopic ? `- IMPORTANT! User want to practice on typing ${practiceTopic}, incorporate a lot of snippets of it
-- if the user wants to practice on a language, use only this language or no other, don't mix languages. unless he wants numbers than incorporate some numbers ranging from 0-2000 with the rest of the text
-- if the user wants to practice on a programming language or certain symbols, use the appropriate symbols even if we say we won't above, the user is the most important` : ''}
+- sprinkly in about 4 easy words in order to decrease user frastration while he is focusing on improving his weaknesses from past typing sessions 
+- Do not force grammatical fluency but do stick to real words and short phrases.
+- User want to practice typing ${practiceTopic}, incorporate a lot of snippets of it.
+- If ${practiceTopic} is a language use only that and DONT mix languages, we don't want to user to switch between language while he type!
+- If no language were mention, assume english.
+- Never use optional diacritics, never mix languages
+- if the user wants to practice on a programming language or certain symbols, include the appropriate symbols
 
-AI notes from previous typing sessions:
+notes from previous typing sessions:
 - ${performanceHistory.map(performance => performance.notes).join(`
 - `)}
+
+Remember that the user is typing every token you output, so don't make it odd or weird, make it like a normal typing test, use numbers and symbols with good taste if at all
+Also, no matter what output only in one language (even if previous typing sessions talks about different language) don't mix chars from different languages
 `;
 
   const response = await client.chat.completions.create({
@@ -193,4 +236,11 @@ function sanitizeWPM(input) {
   if (isNaN(wpm) || wpm < 0) wpm = 0;
   if (wpm > 400) wpm = 400;
   return wpm;
+}
+
+function sanitizePrecenteage(precenteage) {
+  let intPrecenteage = parseInt(precenteage);
+  if (isNaN(intPrecenteage) || intPrecenteage < 0) wpm = 0;
+  if (sanitizePrecenteage > 100) intPrecenteage = 100;
+  return intPrecenteage;
 }

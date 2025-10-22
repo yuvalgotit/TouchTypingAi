@@ -1,15 +1,15 @@
-// because we allow arrow movments, now we aren't catching mistypes after the user went back
-// shift can take a lot of time but the char after it won't and we ignore it
-// in a sequence of errors, isn't only the first letter really matter?
-
 const PERFORMANCE_HISTORY_KEY = "performanceHistory";
 const NEXT_SENTENCE_KEY = "nextSentence";
 const PRACTICE_TOPIC_KEY = "practiceTopic"
+const SYMBOLS_CHECKBOX_KEY = "symbols"
+const NUMBERS_CHECKBOX_KEY = "numbers"
 
-const WELCOME_SENTENCE = "welcome to the future of typing, where flam ai listens to you type and creates new sentences to help you improve."
-const NO_MISTYPES_INSTRUCTION = "Finish without mistakes for the AI to analyze your typing"
-const AI_NOTES_PLACEHOLDER = "Hey I'm Flam, your AI typing coach. Write your first sentence to get started"
+const WELCOME_SENTENCE = "testJtest"//"welcome to the future of typing where flam ai listens to you type and creates new sentences to help you improve"
+const NO_MISTYPES_INSTRUCTION = "Finish without mistakes"
+const AI_NOTES_PLACEHOLDER = "Hey, my name is Flam and I'll be your typing coach. Every round I'll create a new sentence for you to type based on what I think you should focus on."
 const AI_NOTES_LOADING = "Thinking..."
+const AI_NOTES_LOADING_NEW_TOPIC = "Creating a new sentence for the topic "
+const DEFAULT_PRACTICE_TOPIC = 'english'
 
 const tabableElements = ["INPUT", "BUTTON", "A"]
 
@@ -25,12 +25,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const showMobileKeyboardBtn = document.getElementById("showMobileKeyboardBtn")
     const resetBtn = document.getElementById("resetBtn");
     const outputElement = document.getElementById("output");
-    const wpmElement = document.getElementById("wpm")
     const instructionLabel = document.getElementById("instructionLabel")
     const socialsElement = document.getElementById("socials")
+    const symbolsCheckbox = document.getElementById("symbols")
+    const numbersCheckbox = document.getElementById("numbers")
+
+    let prev = ''
 
     function focusInput() {
-        if (document.activeElement != hiddenInput && !tabableElements.includes(document.activeElement.tagName)) {
+        if (document.activeElement != hiddenInput && !tabableElements.includes(document.activeElement.tagName) && !document.body.classList.contains('flam')) {
             socialsElement.classList.remove("focused")
             hiddenInput.focus()
         } else if (document.activeElement.parentElement === socialsElement) {
@@ -38,45 +41,104 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             socialsElement.classList.remove("focused")
         }
+        if (prev != document.activeElement) {
+            prev = document.activeElement
+        }
         requestAnimationFrame(focusInput)
     }
 
-    outputElement.classList.add("focused")
-    focusInput()
+    focusInput();
+
+    document.body.addEventListener("click", () => {
+        if (document.body.classList.contains('flam') && !document.body.classList.contains('loading') && !tabableElements.includes(document.activeElement.tagName)) {
+            document.body.classList.remove('flam')
+            // we focus here for mobile
+            outputElement.classList.add("focused")
+            hiddenInput.focus()
+        }
+    });
+
+    document.body.addEventListener("keydown", (e) => {
+        if (document.body.classList.contains('flam') && !document.body.classList.contains('loading')) {
+            document.body.classList.remove('flam')
+            e.preventDefault();
+            // we don't focus here so tab will work and we let requestAnimationFrame do his thing
+        } else if (document.body.classList.contains('loading') && e.key === "Tab") {
+            e.preventDefault();
+        }
+    })
 
     hiddenInput.addEventListener("focus", () => {
         outputElement.classList.add("focused")
-        hiddenInput.selectionStart = hiddenInput.selectionEnd
+        hiddenInput.selectionStart = hiddenInput.value.length
+        render()
     })
     hiddenInput.addEventListener("blur", () => {
         outputElement.classList.remove("focused")
     })
 
-    practiceTopicInput.value = sessionStorage.getItem(PRACTICE_TOPIC_KEY) || ""
+    practiceTopicInput.value = localStorage.getItem(PRACTICE_TOPIC_KEY) || DEFAULT_PRACTICE_TOPIC
 
-    clearHistoryButton.addEventListener(("click"), () => {
+    symbolsCheckbox.checked = localStorage.getItem(SYMBOLS_CHECKBOX_KEY) === 'false' ? false : true
+    numbersCheckbox.checked = localStorage.getItem(NUMBERS_CHECKBOX_KEY) === 'false' ? false : true
+
+    clearHistoryButton.addEventListener("click", () => {
         localStorage.clear();
-        sessionStorage.clear();
-        practiceTopicInput.value = ""
+        practiceTopicInput.value = DEFAULT_PRACTICE_TOPIC
+        symbolsCheckbox.checked = true
+        numbersCheckbox.checked = true
+        document.body.className = "flam firstTime"
         reset();
-
-        clearHistoryButton.classList.add('clicked');
-        hiddenInput.focus()
-        setTimeout(() => {
-            clearHistoryButton.classList.remove('clicked');
-        }, 200);
+        setTimeout(function () {
+            clearHistoryButton.blur()
+        }, 0)
     })
 
-    showMobileKeyboardBtn.addEventListener(("click"), () => {
+    const handlePracticeTopicInputChange = () => {
+        if (practiceTopicInput.value === "") {
+            practiceTopicInput.value = DEFAULT_PRACTICE_TOPIC
+        }
+        if (practiceTopicInput.value != (localStorage.getItem(PRACTICE_TOPIC_KEY) || DEFAULT_PRACTICE_TOPIC)) {
+            localStorage.setItem(PRACTICE_TOPIC_KEY, practiceTopicInput.value)
+
+            document.body.classList.add('flam')
+            outputElement.classList.remove("focused")
+            hiddenInput.blur()
+
+            regenerateNextSentence()
+        }
+    };
+
+    practiceTopicInput.addEventListener("blur", handlePracticeTopicInputChange);
+    practiceTopicInput.addEventListener("change", handlePracticeTopicInputChange);
+
+
+    showMobileKeyboardBtn.addEventListener("click", (e) => {
         hiddenInput.focus()
+
+        // Find the element under the click, ignoring the button itself
+        showMobileKeyboardBtn.style.pointerEvents = "none";
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        showMobileKeyboardBtn.style.pointerEvents = "auto";
+
+        // move cursor to the clicked letter for mobile users that want to fix a past mistype
+        if (el && el.tagName === "SPAN" && hiddenInput.value) {
+            const index = Array.from(output.children).indexOf(el);
+            hiddenInput.selectionEnd = index
+            render()
+        }
     })
 
-    resetBtn.addEventListener(("click"), () => {
+    resetBtn.addEventListener("click", () => {
         reset()
         hiddenInput.focus()
     })
 
     hiddenInput.addEventListener("keydown", (event) => {
+        if (event.key.length !== 1 && event.key !== "Backspace") {
+            return; // skip keys like shift and arrows to not pollute our array
+        }
+
         const now = performance.now()
 
         const isFirstKey = (keystrokes.length === 0)
@@ -87,7 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
         keystrokes.push({
             delta: Math.round(now - lastPressTime),
             key: event.key,
-            cursor: hiddenInput.selectionStart
+            cursor: hiddenInput.selectionStart,
+            lengthSoFar: hiddenInput.value.length
         });
 
         lastPressTime = now
@@ -122,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         else if (hiddenInput.value.length > sentence.length
             || hiddenInput.value.slice(-7) == sentence.slice(charPosition - 6, charPosition + 1)  // there is an mistype and the last 7 chars are correct
-            || getTotalMistypes() > 4
+            || getTotalUnfixedMistypes() > 7
         ) {
             instructionLabel.textContent = NO_MISTYPES_INSTRUCTION
         }
@@ -147,6 +210,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    symbolsCheckbox.addEventListener('change', () => {
+        localStorage.setItem(SYMBOLS_CHECKBOX_KEY, symbolsCheckbox.checked)
+        reset()
+    })
+
+    numbersCheckbox.addEventListener('change', () => {
+        localStorage.setItem(NUMBERS_CHECKBOX_KEY, numbersCheckbox.checked)
+        reset()
+    })
+
     reset();
 
     function reset() {
@@ -154,6 +227,21 @@ document.addEventListener("DOMContentLoaded", () => {
         hiddenInput.value = "";
 
         sentence = localStorage.getItem(NEXT_SENTENCE_KEY) || WELCOME_SENTENCE;
+
+        if (!symbolsCheckbox.checked) {
+            sentence = sentence
+                .toLowerCase()
+                .replace(/[^\p{L}\p{N}\s]/gu, "") // remove non letter symbols
+                .replace(/\s{2,}/g, " ")  // clear double spaces
+                .trim()
+        }
+
+        if (!numbersCheckbox.checked) {
+            sentence = sentence
+                .replace(/[0-9]/g, "") // clear numbers
+                .replace(/\s{2,}/g, " ") // clear double spaces
+                .trim()
+        }
 
         if (isRTL(sentence)) {
             document.body.classList.add("rtl")
@@ -163,10 +251,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         outputElement.innerHTML = sentence.split('').map(c => `<span>${c}</span>`).join('') + '<span class="last">@</span>'
         outputElement.querySelector('span').className = 'cursor'
-        wpmElement.textContent = ""
         instructionLabel.textContent = ""
         renderPerformance()
         runFinished = false
+
+        if (document.body.classList.contains("firstTime") && localStorage.getItem(PERFORMANCE_HISTORY_KEY) != null) {
+            document.body.classList.remove('firstTime')
+        }
 
         render()
     }
@@ -217,21 +308,31 @@ document.addEventListener("DOMContentLoaded", () => {
     function runFinishedSuccessfully() {
         if (!runFinished) { // to prevent mutiple api calls 
             instructionLabel.textContent = ""
-            wpmElement.textContent = `${getWPM()} WPM`
 
-            generateNextSentence()
+            document.body.classList.add('flam')
+            outputElement.classList.remove("focused")
+            hiddenInput.blur()
+
+            const performance = generatePerformance()
+
+            if (document.body.classList.contains("firstTime")) {
+                document.body.classList.remove('firstTime')
+            }
+
+            generateNextSentence(performance)
             runFinished = true
         }
     }
 
-    async function generateNextSentence() {
+    async function generateNextSentence(performance) {
         document.body.classList.add('loading')
         document.querySelector("#ainotes").innerHTML = AI_NOTES_LOADING
+        document.getElementById("accuracy").textContent = performance.accuracy
+        document.getElementById("wpm").textContent = performance.wpm
 
         const problematicKeys = getProblematicKeys()
         const performanceHistory = getPerformanceHistory()
         const practiceTopic = practiceTopicInput.value
-        const wpm = getWPM()
 
         try {
             const res = await fetch("/generate-sentence", {
@@ -242,15 +343,48 @@ document.addEventListener("DOMContentLoaded", () => {
                     problematicKeys: problematicKeys,
                     performanceHistory: performanceHistory,
                     practiceTopic: practiceTopic,
-                    wpm: wpm
+                    performance: performance,
                 })
             });
             const data = await res.json();
-            savePerformanceHistory(data.aiNote, wpm)
+            savePerformanceHistory(data.aiNote || '', performance)
             newSentence(data.sentence)
         } catch (err) {
             console.error("Server error:", err);
-            return sentence; // fallback
+            // fallback
+            savePerformanceHistory("Flam is unreachable at the moment, greetings from the developer", performance)
+            newSentence("There is no internet or the server is unreachable. Either way you somehow got to this text. so nice to meet you, Yuval the developer. (BTW this was written on a flight to Poland with no wifi)")
+        } finally {
+            document.body.classList.remove('loading')
+        }
+    }
+
+    async function regenerateNextSentence() {
+        document.body.classList.add('loading')
+
+        const performanceHistory = getPerformanceHistory()
+        const practiceTopic = practiceTopicInput.value
+
+        document.querySelector("#ainotes").innerHTML = AI_NOTES_LOADING_NEW_TOPIC + practiceTopic + "..."
+        document.getElementById("accuracy").textContent = performanceHistory.at(-1)?.accuracy || 0
+        document.getElementById("wpm").textContent = performanceHistory.at(-1)?.wpm || 0
+
+        try {
+            const res = await fetch("/regenerate-sentence", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    performanceHistory: performanceHistory,
+                    practiceTopic: practiceTopic,
+                })
+            });
+            const data = await res.json();
+            newSentence(data.sentence)
+            document.querySelector("#ainotes").innerHTML = "New sentence created"
+        } catch (err) {
+            console.error("Server error:", err);
+            // fallback
+            newSentence("There is no internet or the server is unreachable. Either way you somehow got to this text. so nice to meet you, Yuval the developer. (BTW this was written on a flight to Poland with no wifi)")
         } finally {
             document.body.classList.remove('loading')
         }
@@ -267,13 +401,15 @@ document.addEventListener("DOMContentLoaded", () => {
         let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
         if (performanceHistory.length) {
             const latestPerformance = performanceHistory.at(-1);
-            document.querySelector("#ainotes").innerHTML = `${latestPerformance.notes} <span class='wpm'>(speed: ${latestPerformance.wpm} WPM)</span>`
+            document.querySelector("#ainotes").innerHTML = latestPerformance.notes
+            document.getElementById("accuracy").textContent = latestPerformance.accuracy
+            document.getElementById("wpm").textContent = latestPerformance.wpm
         } else {
             document.querySelector("#ainotes").innerHTML = AI_NOTES_PLACEHOLDER
         }
     }
 
-    function getTotalMistypes() {
+    function getTotalUnfixedMistypes() {
         const minLength = Math.min(hiddenInput.value.length, sentence.length);
         let totalMistypes = 0;
 
@@ -291,13 +427,10 @@ document.addEventListener("DOMContentLoaded", () => {
     preloadImage.src = 'yourIdeasFocused.png';
 });
 
-// TODO: BUG? if I go back with the arrows and fix some key, the precedingKeys won't be correct right?
-
-// 🎈🎈🎈 IDEA: maybe we still need to have pos on each element so the ai will see if the mistakes are on the same place of the sentence 🎈
 function getProblematicKeys() {
     const keystrokesWithoutLongPauses = keystrokes
         .map((k, i) => { return { ...k, originalIndex: i } })
-        .filter(k => k.delta < 3000);
+        .filter(k => k.delta < 3000 && k.cursor === k.lengthSoFar); // also filtering out those that weren't typed when the cursor was at the end
 
     const avgDelta = keystrokesWithoutLongPauses.reduce((acc, k) => acc + k.delta, 0) / keystrokesWithoutLongPauses.length;
     const variance = keystrokesWithoutLongPauses.reduce((acc, k) => acc + Math.pow(k.delta - avgDelta, 2), 0) / keystrokesWithoutLongPauses.length;
@@ -337,26 +470,64 @@ function getProblematicKeys() {
     return enrichedSlowKeysAndMistypedKeys
 }
 
-function getWPM() {
-    const CharsWrittenSoFar = hiddenInput.value.length;
-    const totalTimeMs = keystrokes.reduce((accumulator, currentKeystroke) => {
-        return accumulator + currentKeystroke.delta;
-    }, 0);
-    if (totalTimeMs === 0) return 0
-    const minutes = totalTimeMs / 60000;
-    const wpm = Math.round((CharsWrittenSoFar / 5) / minutes)
+function generatePerformance() {
+    const charsWritten = hiddenInput.value.length;
+    const totalMistypes = keystrokes.filter(k => k.mistyped).length
 
-    return wpm
+    // --- Accuracy ---
+    const accuracy = charsWritten > 0
+        ? Math.round(Math.max(0, ((charsWritten - totalMistypes) / charsWritten) * 100))
+        : 100;
+
+    // --- Consistency ---
+    const validKeystrokes = keystrokes.filter(k => k.delta < 3000 && k.cursor === k.lengthSoFar); // ignore long pauses or chars in the middle
+    let consistency = getConsistencyRolling(validKeystrokes, 5);
+
+    // --- WPM ---
+    const totalTimeMs = keystrokes.reduce((acc, k) => acc + k.delta, 0);
+    const minutes = totalTimeMs / 60000;
+    const wpm = minutes > 0 ? Math.round((charsWritten / 5) / minutes) : 0;
+
+    return {
+        accuracy,
+        consistency,
+        wpm,
+    }
 }
 
-function savePerformanceHistory(aiNotes, wpm) {
+function getConsistencyRolling(keystrokes, windowSize = 5) {
+    if (keystrokes.length < windowSize) return 100;
+
+    const wpmSamples = [];
+
+    for (let i = 0; i <= keystrokes.length - windowSize; i++) {
+        // sum deltas for this window
+        const time = keystrokes
+            .slice(i, i + windowSize)
+            .reduce((a, k) => a + k.delta, 0);
+
+        const minutes = time / 60000;
+        const wpm = (windowSize / 5) / minutes; // 5 chars = 1 word
+        wpmSamples.push(wpm);
+    }
+
+    if (wpmSamples.length < 2) return 100;
+
+    const mean = wpmSamples.reduce((a, b) => a + b, 0) / wpmSamples.length;
+    const variance = wpmSamples.reduce((a, b) => a + (b - mean) ** 2, 0) / wpmSamples.length;
+    const stdDev = Math.sqrt(variance);
+
+    const cv = stdDev / mean;
+    return Math.round(Math.max(0, Math.min(100, 100 - cv * 100)));
+}
+
+function savePerformanceHistory(aiNotes, performance) {
     let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
-    performanceHistory.push({ wpm: wpm, notes: aiNotes });
+    performanceHistory.push({ ...performance, notes: aiNotes });
 
     if (performanceHistory.length > 4) performanceHistory = performanceHistory.slice(-5);
 
     localStorage.setItem(PERFORMANCE_HISTORY_KEY, JSON.stringify(performanceHistory));
-    sessionStorage.setItem(PRACTICE_TOPIC_KEY, practiceTopicInput.value)
 }
 
 function getPerformanceHistory() {
@@ -368,4 +539,3 @@ function isRTL(text) {
     const rtlChars = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
     return rtlChars.test(text);
 }
-

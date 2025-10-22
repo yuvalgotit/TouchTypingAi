@@ -8,12 +8,16 @@
     <link rel="stylesheet" href="index.css">
 </head>
 
-<body>
+<body class="flam firstTime">
     <script src="index.js"></script>
     <header>
         <h1>TouchTyping.<span>Ai</span></h1>
     </header>
     <main>
+        <div id="preferences">
+            <label for="practiceTopicInput">You are typing </label>
+            <input id="practiceTopicInput" type="text" maxlength="30" autocomplete="off" />
+        </div>
         <input id="hiddenInput" type="text" autocomplete="off" maxlength="210">
         <article class="box">
             <div id="output"></div>
@@ -29,19 +33,32 @@
                 </svg>
             </button>
         </div>
-        <div id="wpm"></div>
-        <figure id="flam">
-            <img src="Flam.png" alt="Flma AI" />
-            <div id="loadingSpinner"></div>
-            <figcaption>
-                <p id="ainotes"></p>
-                <input id="practiceTopicInput" type="text" maxlength="30"
-                    placeholder="Anything you want to practice next?" />
-            </figcaption>
-        </figure>
+        <div class="popup">
+            <figure id="flam">
+                <img src="Flam.png" alt="Flma AI" />
+                <figcaption id="ainotes"></figcaption>
+            </figure>
+            <h2 id="pressAnythingToContinueText">Press anything to </h2>
+            <aside class="performance">
+                <div id="wpm_container" title="Words per minute (speed)" class="performanceTab"><span
+                        id="wpm"></span>wpm</div>
+                <div id="accuracy_container" title="correct chars / total chars typed (accuracy)"
+                    class="performanceTab"><span id="accuracy"></span>%
+                </div>
+            </aside>
+
+        </div>
     </main>
     <footer>
-        <button id="clearHistoryButton">Wipe data</button>
+        <form>
+            <input type="checkbox" name="typingMode" id="symbols" checked>
+            <label for="symbols" class="checkboxLabel" title="Include punctuation, symbols and uppercase">symbols</label>
+            |
+            <input type="checkbox" name="typingMode" id="numbers" checked>
+            <label for="numbers" class="checkboxLabel">numbers</label>
+        </form>
+
+        <button id="clearHistoryButton">hard reset</button>
         <nav id="socials">
             <a href="https://www.instagram.com/yuvalgotit/" title="instagram" target="_blank" rel="noopener noreferrer">
                 <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24px" height="24px"

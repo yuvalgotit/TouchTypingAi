@@ -40,6 +40,13 @@ footer {
     padding: 12px 15px;
 }
 
+body.flam footer,
+body.flam #output,
+body.flam #preferences {
+    filter: blur(7px);
+    pointer-events: none;
+}
+
 h1 {
     margin: 0;
     font-size: clamp(1.8rem, 2vw + 1rem, 2.2rem);
@@ -73,14 +80,36 @@ a:focus {
     outline: none;
 }
 
+input[type="checkbox"]:focus+label.checkboxLabel,
+label.checkboxLabel:hover {
+    border-bottom: 1px solid var(--correct-text-color);
+}
+
 a:hover>svg,
 button:hover>svg,
 a:focus>svg {
     transform: scale(1.1);
 }
 
-button.clicked {
-    transform: scale(0.99);
+input[type="checkbox"] {
+    margin: 0;
+    position: absolute;
+    opacity: 0;
+}
+
+input[type="checkbox"]:checked+label.checkboxLabel {
+    color: var(--correct-text-color);
+}
+
+.checkboxLabel {
+    cursor: pointer;
+    margin-left: 0;
+}
+
+#preferences {
+    text-align: center;
+    padding: 1vmax;
+    margin-top: 2vh;
 }
 
 #hiddenInput {
@@ -95,13 +124,14 @@ body.rtl #hiddenInput {
 }
 
 .box {
-    margin: calc(3vw + 2.5vh) auto 0 auto;
+    margin: 4vh auto 0 auto;
     position: relative;
 }
 
 #output {
     white-space: break-spaces;
     font-size: clamp(1.3rem, 1.8vw + 1rem, 2.3rem);
+    line-height: calc(clamp(1.3rem, 1.8vw + 1rem, 2.3rem) + 1rem);
     color: var(--unwritten-text-color);
 }
 
@@ -114,8 +144,13 @@ body.rtl #output {
 }
 
 .correct {
-    color: #5df1a5;
-    color: var(--correct-text-color)
+    color: var(--correct-text-color);
+    background-color: #5df1a533;
+}
+
+body.flam .correct {
+    color: var(--unwritten-text-color);
+    background-color: transparent
 }
 
 .mistype {
@@ -126,6 +161,10 @@ body.rtl #output {
 #resetBtn svg {
     position: relative;
     top: 1.75px;
+}
+
+body.flam #resetBtn {
+    opacity: 0;
 }
 
 .last,
@@ -140,6 +179,7 @@ body.rtl #output {
     left: 30%;
     font-size: 0.8rem;
     color: var(--text-color);
+    line-height: 0.6rem;
     z-index: 2;
 }
 
@@ -153,7 +193,6 @@ body.rtl #output {
     position: absolute;
     color: var(--text-color);
     right: 50%;
-    bottom: 0.1rem;
 }
 
 body.rtl #output.focused .cursor::after {
@@ -174,17 +213,6 @@ body.rtl #output.focused .cursor::after {
     }
 }
 
-#wpm {
-    font-size: 5rem;
-    color: var(--wpm-color);
-    position: absolute;
-    left: 0;
-    top: 45vh;
-    width: 100vw;
-    text-align: center;
-    z-index: 2;
-}
-
 #socials a {
     margin: 0 0.2vw;
 }
@@ -196,7 +224,8 @@ body.rtl #output.focused .cursor::after {
     width: 256px;
     height: 256px;
     z-index: -1;
-    background-image: url('yourIdeas.png')
+    background-image: url('yourIdeas.png');
+    pointer-events: none;
 }
 
 #socials.focused #yourIdeasImg {
@@ -226,31 +255,87 @@ body.rtl #output.focused .cursor::after {
     padding: 0.3rem 1.5rem 1rem 1.5rem;
 }
 
+.popup {
+    position: absolute;
+    margin: 0;
+    padding: 1vh;
+    z-index: 1;
+    width: 86vw;
+    min-height: 35vh;
+    top: 22%;
+    left: 6vw;
+    opacity: 0.7;
+    border: 1px solid var(--wpm-color);
+    border-radius: 6px;
+    background-color: #1b1f27;
+    flex-direction: column;
+    justify-content: space-between;
+    display: none;
+}
+
 #flam {
     display: flex;
     gap: 1.2vh;
     flex-direction: row;
-    align-items: center;
-    background-color: #1b1f27;
+    align-items: flex-start;
     color: var(--ai-color);
-    border-radius: 1rem;
-    margin: 0 2vh 1vh 0;
-    padding: 1vh 1vh 1vh 0;
-    position: relative;
+    margin: 1vw;
 }
 
-#flam figcaption{
+body.flam .popup {
+    display: flex;
+}
+
+#flam figcaption {
     min-width: 80%
 }
 
 #ainotes {
     color: var(--ai-color);
     font-size: clamp(0.7rem, 1vw + 0.6rem, 1rem);
-    margin-left: 1px;
+    font-size: 1.5rem;
+    margin: 0.3rem 0 0 0
 }
 
-#ainotes .wpm {
-    color: #81667A
+.performance {
+    position: absolute;
+    color: #000000;
+    font-size: 1rem;
+    bottom: -40px;
+    right: 1vw;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 10px;
+}
+
+.performanceTab {
+    background-color: #b99166;
+    position: relative;
+    height: 20px;
+    min-width: 50px;
+    padding: 10px;
+    text-align: center;
+}
+
+.performanceTab::before {
+    position: absolute;
+    color: var(--text-color);
+    top: -20px;
+    left: 10%;
+    font-size: 0.7rem;
+}
+
+#wpm_container::before {
+    content: "speed";
+    left: 24%;
+}
+
+#accuracy_container::before {
+    content: "accuracy";
+}
+
+.firstTime .performance {
+    display: none;
 }
 
 #practiceTopicInput {
@@ -259,43 +344,81 @@ body.rtl #output.focused .cursor::after {
     border: none;
     border-radius: 0;
     border-bottom: 1px solid var(--unwritten-text-color);
-    color: var(--text-color);
-    width: 90%;
-    max-width: 40ch;
+    color: var(--unwritten-text-color);
     transition: all 0.2s linear;
 }
 
 #practiceTopicInput:focus {
     border-bottom: 1px solid var(--text-color);
+    color: var(--text-color);
+}
+
+#topicInstructionLabel {
+    color: var(--text-color);
+    font-size: 80%;
+    margin-left: 1px;
 }
 
 #flam img {
-    height: 4rem;
+    height: 8vw;
+    max-height: 4rem;
     border-radius: 50%;
 }
 
-#flam #loadingSpinner {
+#pressAnythingToContinueText {
+    display: block;
+    color: var(--correct-text-color);
+    text-align: center;
+    margin-bottom: 3vh;
+}
+
+#pressAnythingToContinueText::after {
+    content: "continue"
+}
+
+body.firstTime #pressAnythingToContinueText::after {
+    content: "start"
+}
+
+/* LOADING */
+
+#flam::after {
+    content: "";
     position: absolute;
-    left: -1px;
-    width: 60px;
-    height: 60px;
+    height: 8vw;
+    max-height: 4rem;
+    width: 8vw;
+    max-width: 4rem;
     border-radius: 50%;
     border: 3px solid #c4c4c4;
     border-top: 3px solid #c62e65;
+    animation: spin 1s linear infinite;
     display: none;
 }
 
-body.loading #flam #loadingSpinner {
+body.loading #flam {
+    align-items: center;
+    gap: 2vh;
+}
+
+body.loading #flam::after {
     display: block;
-    animation: spin 1s linear infinite;
+}
+
+body.loading #pressAnythingToContinueText {
+    display: none;
+}
+
+body.loading #practiceTopicInput {
+    display: none;
 }
 
 @keyframes spin {
     from {
-        transform: rotate(0deg);
+        transform: translateX(-2px) rotate(0deg) ;
     }
 
     to {
-        transform: rotate(360deg);
+        transform: translateX(-2px) rotate(360deg);
     }
 }
