@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 
     const handlePracticeTopicInputChange = () => {
-        if (practiceTopicInput.value === "") {
+        if (practiceTopicInput.value === "" || practiceTopicInput.value.length < 4) {
             practiceTopicInput.value = DEFAULT_PRACTICE_TOPIC
         }
         if (practiceTopicInput.value != (localStorage.getItem(PRACTICE_TOPIC_KEY) || DEFAULT_PRACTICE_TOPIC)) {
@@ -398,7 +398,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderPerformance() {
-        let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
+        let historyForAllTopics = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || {};
+        let performanceHistory = historyForAllTopics[practiceTopicInput.value] || []
         if (performanceHistory.length) {
             const latestPerformance = performanceHistory.at(-1);
             document.querySelector("#ainotes").innerHTML = latestPerformance.notes
@@ -522,16 +523,19 @@ function getConsistencyRolling(keystrokes, windowSize = 5) {
 }
 
 function savePerformanceHistory(aiNotes, performance) {
-    let performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
-    performanceHistory.push({ ...performance, notes: aiNotes });
+    let historyForAllTopics = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || {};
+    let performanceHistory = historyForAllTopics[practiceTopicInput.value] || []
 
+    performanceHistory.push({ ...performance, notes: aiNotes });
     if (performanceHistory.length > 4) performanceHistory = performanceHistory.slice(-5);
 
-    localStorage.setItem(PERFORMANCE_HISTORY_KEY, JSON.stringify(performanceHistory));
+    historyForAllTopics[practiceTopicInput.value] = performanceHistory
+    localStorage.setItem(PERFORMANCE_HISTORY_KEY, JSON.stringify(historyForAllTopics));
 }
 
 function getPerformanceHistory() {
-    const performanceHistory = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || [];
+    let historyForAllTopics = JSON.parse(localStorage.getItem(PERFORMANCE_HISTORY_KEY)) || {};
+    const performanceHistory = historyForAllTopics[practiceTopicInput.value] || []
     return performanceHistory.slice(-4)
 }
 
